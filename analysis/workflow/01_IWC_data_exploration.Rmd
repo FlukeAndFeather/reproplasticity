@@ -1,0 +1,131 @@
+---
+title: "IWC Data Exploration"
+author: "Max Czapanskiy"
+date: "5/4/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = here::here())
+library(lubridate)
+library(tidyverse)
+```
+
+```{r load_data, include=FALSE}
+convert_length_m <- function(len, len_u) {
+  # "These are coded in their original units, either metric or imperial.  The
+  # units are specified by the indicator in the following field which also
+  # distinguishes between lengths given to the nearest foot and those given to
+  # the nearest inch.  Unknown lengths are coded as 0000.
+	# Eg 46 ft 7ins is entered as 4607 with length switch 4
+	#    21.3m       is entered as 2130 with length switch 3.
+  # The length switch denotes the units of length (in previous field).  It is 
+  # coded as 2: feet only 3: metric 4: feet and inches"
+  stopifnot(is.numeric(len))
+  stopifnot(all(len_u %in% 2:4))
+  len_whole <- floor(len / 100)
+  len_frac <- len - len_whole
+  case_when(
+    len_u == 2 ~ len_whole * 0.3048,
+    len_u == 3 ~ (len_whole + len_frac / 12) * 0.3048,
+    len_u == 4 ~ len_whole + len_frac / 100
+  )
+}
+
+read_iwc <- function(path) {
+  read_csv(path, 
+           col_types = cols(Len = "i",
+                            Lat = "i",
+                            Mn = "i",
+                            Lon = "i",
+                            Mn_1 = "i",
+                            .default = "c")) %>% 
+    transmute(date = as.Date(sprintf("%s-%s-%s", Year, Mon, Day)),
+              catch_year = year(date),
+              species = factor(Sp, 
+                               levels = 1:22,
+                               labels = c("Pilot",
+                                          "Bottlenose",
+                                          "Killer",
+                                          "Blue",
+                                          "Fin",
+                                          "Sperm",
+                                          "Humpback",
+                                          "Sei",
+                                          "Common Minke",
+                                          "Bryde's",
+                                          "Right",
+                                          "Gray",
+                                          "Baird's Beaked",
+                                          "Baleen",
+                                          "Pygmy Blue",
+                                          "Pygmy Right",
+                                          "Cuvier's Beaked",
+                                          "Bowhead",
+                                          "Beaked (unspecified)",
+                                          "Antarctic Minke",
+                                          "Sei/Bryde's",
+                                          "Dolphin")),
+              length_m = convert_length_m(Len, `L-u`),
+              sex = factor(Sx, 
+                           levels = 0:3, 
+                           labels = c("Unknown",
+                                      "Male",
+                                      "Female",
+                                      "Hermaphrodite")),
+              latitude = Lat + Mn / 60 * ifelse(X18 == "S", -1, 1),
+              longitude = Lon + Mn_1 / 60 * ifelse(X18 == "W", -1, 1),
+              repro = factor(Fem,
+                             levels = 0:9,
+                             labels = c("Not pregnant",
+                                        "Pregnant",
+                                        "Ovulating",
+                                        "Lactating",
+                                        "Pregnant and lactating",
+                                        "Ovulating and lactating",
+                                        "Ovulating or Pregnant",
+                                        "Resting",
+                                        "Pregnancy lost",
+                                        "Unknown")),
+              is_pregnant = Fem %in% c(1, 2, 4),
+              maturity = factor(Mat,
+                                levels = 0:4,
+                                labels = c("Unknown",
+                                           "Mature",
+                                           "Immature",
+                                           "Mother",
+                                           "Calf")))
+}
+
+all_whaling_records <- lapply(
+  c("analysis/data/raw_data/SHL.csv",
+    "analysis/data/raw_data/SHP1.csv",
+    "analysis/data/raw_data/SU.csv"),
+  read_iwc
+) %>% 
+  bind_rows()
+
+great_whale_records <- all_whaling_records %>% 
+  drop_na(date, species) %>% 
+  filter(species %in% c("Blue",
+                        "Fin",
+                        "Sperm",
+                        "Humpback",
+                        "Sei",
+                        "Common Minke",
+                        "Antarctic Minke",
+                        "Pygmy Blue"))
+```
+
+## Catches over time
+
+```{r catches_time}
+great_whale_records %>% 
+  count(catch_year, species) %>% 
+  ggplot(aes(catch_year, n, fill = species)) +
+  geom_area() +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
