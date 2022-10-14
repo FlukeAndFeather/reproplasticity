@@ -1,0 +1,89 @@
+---
+title: "Density-dependent pregnancy rates"
+author: "Max Czapanskiy"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = here::here())
+library(lubridate)
+library(tidyverse)
+```
+
+## Population sizes
+
+Christensen et al. (2006) reconstructed population sizes of whale populations.
+
+```{r read_pops}
+whale_pops <- readxl::read_excel("analysis/data/raw_data/Whale_pops_time_Christensen 2006.xlsx") %>% 
+  # Years have decimals for some reason
+  mutate(Year = floor(Year))
+glimpse(whale_pops)
+```
+
+```{r whale_pops_ts}
+whale_pops %>% 
+  filter(between(Year, 1900, 2000),
+         Region %in% c("North Pacific", "Southern Hemisphere"),
+         CommonName %in% c("Antarctic Minke Whale",
+                           "Blue Whale",
+                           "Common Minke Whale",
+                           "Fin Whale")) %>% 
+  mutate(Pop_size = Pop_size / 1000) %>% 
+  ggplot(aes(Year, Pop_size, color = CommonName)) +
+  geom_line() +
+  facet_grid(rows = vars(Region), scales = "free_y") +
+  scale_y_continuous("Population size (1000s)") +
+  theme_classic() +
+  theme(legend.position = "bottom",
+        legend.title = element_blank())
+```
+
+## Density-dependent pregnancy rates
+
+```{r iwc}
+whale_catches <- readRDS("analysis/data/derived_data/great_whales_iwc.RDS") %>% 
+  filter(species %in% c("Antarctic Minke",
+                        "Blue",
+                        "Common Minke",
+                        "Fin")) %>% 
+  mutate(species = paste(as.character(species), "Whale"))
+
+whale_preg <- whale_catches %>% 
+  filter(sex == "Female") %>% 
+  drop_na(latitude) %>% 
+  mutate(Hemisphere = ifelse(latitude < 0, "S", "N")) %>% 
+  group_by(Year = catch_year,
+           CommonName = species,
+           Hemisphere) %>% 
+  summarize(n_f_catch = n(),
+            preg_rate = sum(is_pregnant) / n(),
+            .groups = "drop") %>% 
+  filter(n_f_catch >= 10)
+```
+
+```{r ddpr}
+sh_whales <- whale_pops %>% 
+  filter(between(Year, 1900, 2000),
+         Region == "Southern Hemisphere",
+         CommonName %in% c("Antarctic Minke Whale",
+                           "Blue Whale",
+                           "Common Minke Whale",
+                           "Fin Whale")) %>% 
+  left_join(filter(whale_preg, Hemisphere == "S"), 
+            by = c("Year", "CommonName"))
+
+sh_whales %>% 
+  mutate(is_ww2 = Year %in% 1941:1944) %>% 
+  ggplot(aes(Pop_size, preg_rate)) + 
+  geom_point(aes(color = is_ww2)) +
+  geom_smooth(color = "black", se = FALSE) +
+  facet_grid(cols = vars(CommonName)) +
+  scale_y_continuous("Pregnancy Rate", labels = scales::percent) +
+  scale_color_manual(values = c(`TRUE` = "red", `FALSE` = "blue")) +
+  expand_limits(y = 0) +
+  theme_classic()
+```
+
+
