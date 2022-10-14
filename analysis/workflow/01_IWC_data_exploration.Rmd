@@ -1,7 +1,6 @@
 ---
 title: "IWC Data Exploration"
 author: "Max Czapanskiy"
-date: "5/4/2022"
 output: html_document
 ---
 
@@ -35,12 +34,23 @@ convert_length_m <- function(len, len_u) {
 
 read_iwc <- function(path) {
   read_csv(path, 
+           # Read columns as character by default, except length and location.
+           # Location is encoded as lat/lon with minutes. Both minutes columns
+           # are called Mn, hence Mn...17 and Mn...21.
            col_types = cols(Len = "i",
                             Lat = "i",
-                            Mn = "i",
+                            `Mn...17` = "i",
                             Lon = "i",
-                            Mn_1 = "i",
+                            `Mn...21` = "i",
                             .default = "c")) %>% 
+    # Columns after 39 are notes, which have file-dependent names and prevent
+    # binding rowwise.
+    select(1:39) %>% 
+    # Hemisphere columns aren't named. They're in the 18th and 22nd position.
+    rename(NS = `...18`,
+           EW = `...22`,
+           Mn_lat = `Mn...17`,
+           Mn_lon = `Mn...21`) %>% 
     transmute(date = as.Date(sprintf("%s-%s-%s", Year, Mon, Day)),
               catch_year = year(date),
               species = factor(Sp, 
@@ -74,8 +84,8 @@ read_iwc <- function(path) {
                                       "Male",
                                       "Female",
                                       "Hermaphrodite")),
-              latitude = Lat + Mn / 60 * ifelse(X18 == "S", -1, 1),
-              longitude = Lon + Mn_1 / 60 * ifelse(X18 == "W", -1, 1),
+              latitude = (Lat + Mn_lat / 60) * ifelse(NS == "S", -1, 1),
+              longitude = (Lon + Mn_lon / 60) * ifelse(EW == "W", -1, 1),
               repro = factor(Fem,
                              levels = 0:9,
                              labels = c("Not pregnant",
@@ -127,5 +137,54 @@ great_whale_records %>%
   geom_area() +
   theme_minimal() +
   theme(legend.position = "bottom")
+```
+
+```{r catches_pregnancy}
+preg_rate <- function(is_pregnant, sex) {
+  n_preg <- sum(is_pregnant)
+  n_fem <- sum(sex == "Female")
+  if (n_fem == 0) {
+    NA
+  } else {
+    n_preg / n_fem
+  }
+}
+
+by_year <- great_whale_records %>% 
+  group_by(catch_year, species) %>% 
+  summarize(catches = n(),
+            preg_rate = preg_rate(is_pregnant, sex),
+            .groups = "drop")
+
+plot_catches_preg <- function(sp) {
+  dat <- by_year %>% 
+    filter(species == sp) %>%
+    mutate(catches2 = catches / 1000,
+           preg_rate2 = preg_rate * max(catches2))
+  max_rate <- max(dat$preg_rate2, na.rm = TRUE)
+  ggplot(dat, aes(catch_year)) +
+    geom_line(aes(y = catches2), color = "red") +
+    geom_line(aes(y = preg_rate2), color = "blue") +
+    scale_y_continuous("Total catches (1000s)", 
+                       sec.axis = sec_axis(~ . / max_rate,
+                                           "Pregnancy rate",
+                                           labels = scales::percent)) +
+    labs(title = sp) +
+    theme_classic() +
+    theme(axis.title.x = element_blank(),
+          axis.text.y.left = element_text(color = "red"),
+          axis.text.y.right = element_text(color = "blue"),
+          axis.title.y.left = element_text(color = "red"),
+          axis.title.y.right = element_text(color = "blue"))
+}
+
+plots <- map(c("Blue", "Fin", "Humpback", "Sperm"), plot_catches_preg)
+cowplot::plot_grid(plotlist = plots, 
+                   nrow = 2,
+                   align = "hv")
+```
+
+```{r export}
+saveRDS(great_whale_records, "analysis/data/derived_data/great_whales_iwc.RDS")
 ```
 
