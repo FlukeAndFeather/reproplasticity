@@ -71,14 +71,38 @@ sh_whales <- whale_pops %>%
   left_join(filter(whale_preg, Hemisphere == "S"), 
             by = c("Year", "CommonName"))
 
-ggplot(sh_whales, aes(Pop_size, preg_rate)) + 
+ggplot(sh_whales, aes(Pop_size / 1000, preg_rate)) + 
   geom_point() +
   geom_smooth(se = FALSE) +
-  facet_grid(cols = vars(CommonName)) +
+  facet_grid(cols = vars(CommonName), scales = "free_x") +
   scale_y_continuous("Pregnancy Rate", labels = scales::percent) +
   scale_color_manual(values = c(`TRUE` = "red", `FALSE` = "blue")) +
+  labs(x = "Population (1000s)") +
   expand_limits(y = 0) +
   theme_classic()
+```
+
+Catches and populations over time
+```{r catch_pop}
+sh_catches <- whale_catches %>% 
+  drop_na(latitude) %>% 
+  filter(latitude < 0, species != "Antarctic Minke Whale") %>% 
+  group_by(Year = catch_year,
+           CommonName = species) %>% 
+  summarize(Catches = n(), .groups = "drop")
+
+ggplot() + 
+  geom_line(aes(Year, Pop_size / 1000),
+            filter(sh_whales, between(Year, 1920, 1980)),
+            color = "blue",
+            size = 1) +
+  geom_line(aes(Year, Catches / 1000),
+            filter(sh_catches, between(Year, 1920, 1980)),
+            color = "red",
+            size = 1) +
+  facet_grid(cols = vars(CommonName), scales = "free_x") +
+  labs(y = "Whales (1000s)") +
+  theme_classic(base_size = 24)
 ```
 
 ### Density-dependence threshold
