@@ -18,7 +18,12 @@ Christensen et al. (2006) reconstructed population sizes of whale populations.
 ```{r read_pops}
 whale_pops <- readxl::read_excel("analysis/data/raw_data/Whale_pops_time_Christensen 2006.xlsx") %>% 
   # Years have decimals for some reason
-  mutate(Year = floor(Year))
+  mutate(Year = floor(Year),
+         # Sperm Whale populations weren't broken down by hemisphere, so
+         # we're just using the global population for now
+         Region = ifelse(CommonName == "Sperm Whale",
+                         "Southern Hemisphere",
+                         Region))
 glimpse(whale_pops)
 ```
 
@@ -27,13 +32,8 @@ whale_pops %>%
   filter(between(Year, 1900, 2000),
          CommonName %in% c("Blue Whale",
                            "Fin Whale",
-                           "Sperm Whale")) %>% 
-  # Sperm Whale populations weren't broken down by hemisphere, so
-  # we're just using the global population for now
-  mutate(Region = ifelse(CommonName == "Sperm Whale",
-                         "Southern Hemisphere",
-                         Region)) %>% 
-  filter(Region == "Southern Hemisphere") %>% 
+                           "Sperm Whale"),
+         Region == "Southern Hemisphere") %>% 
   mutate(Pop_size = Pop_size / 1000) %>% 
   ggplot(aes(Year, Pop_size, color = CommonName)) +
   geom_line() +
@@ -47,10 +47,9 @@ whale_pops %>%
 
 ```{r iwc}
 whale_catches <- readRDS("analysis/data/derived_data/great_whales_iwc.RDS") %>% 
-  filter(species %in% c("Antarctic Minke",
-                        "Blue",
-                        "Common Minke",
-                        "Fin")) %>% 
+  filter(species %in% c("Blue",
+                        "Fin",
+                        "Sperm")) %>% 
   mutate(species = paste(as.character(species), "Whale"))
 
 whale_preg <- whale_catches %>% 
@@ -81,7 +80,7 @@ ggplot(sh_whales, aes(Pop_size / 1000, preg_rate)) +
   scale_y_continuous("Pregnancy Rate", labels = scales::percent) +
   scale_color_manual(values = c(`TRUE` = "red", `FALSE` = "blue")) +
   labs(x = "Population (1000s)") +
-  expand_limits(y = 0) +
+  expand_limits(x = 0, y = 0) +
   theme_classic()
 ```
 
@@ -96,11 +95,11 @@ sh_catches <- whale_catches %>%
 
 ggplot() + 
   geom_line(aes(Year, Pop_size / 1000),
-            filter(sh_whales, between(Year, 1920, 1980)),
+            filter(sh_whales, between(Year, 1920, 1990)),
             color = "blue",
             size = 1) +
   geom_line(aes(Year, Catches / 1000),
-            filter(sh_catches, between(Year, 1920, 1980)),
+            filter(sh_catches, between(Year, 1920, 1990)),
             color = "red",
             size = 1) +
   facet_grid(cols = vars(CommonName), scales = "free_x") +
