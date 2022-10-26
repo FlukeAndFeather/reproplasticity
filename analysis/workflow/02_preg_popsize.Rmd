@@ -25,15 +25,18 @@ glimpse(whale_pops)
 ```{r whale_pops_ts}
 whale_pops %>% 
   filter(between(Year, 1900, 2000),
-         Region %in% c("North Pacific", "Southern Hemisphere"),
-         CommonName %in% c("Antarctic Minke Whale",
-                           "Blue Whale",
-                           "Common Minke Whale",
-                           "Fin Whale")) %>% 
+         CommonName %in% c("Blue Whale",
+                           "Fin Whale",
+                           "Sperm Whale")) %>% 
+  # Sperm Whale populations weren't broken down by hemisphere, so
+  # we're just using the global population for now
+  mutate(Region = ifelse(CommonName == "Sperm Whale",
+                         "Southern Hemisphere",
+                         Region)) %>% 
+  filter(Region == "Southern Hemisphere") %>% 
   mutate(Pop_size = Pop_size / 1000) %>% 
   ggplot(aes(Year, Pop_size, color = CommonName)) +
   geom_line() +
-  facet_grid(rows = vars(Region), scales = "free_y") +
   scale_y_continuous("Population size (1000s)") +
   theme_classic() +
   theme(legend.position = "bottom",
@@ -67,7 +70,7 @@ whale_preg <- whale_catches %>%
 sh_whales <- whale_pops %>% 
   filter(between(Year, 1900, 2000),
          Region == "Southern Hemisphere",
-         CommonName %in% c("Blue Whale", "Fin Whale")) %>% 
+         CommonName %in% c("Blue Whale", "Fin Whale", "Sperm Whale")) %>% 
   left_join(filter(whale_preg, Hemisphere == "S"), 
             by = c("Year", "CommonName"))
 
@@ -104,55 +107,3 @@ ggplot() +
   labs(y = "Whales (1000s)") +
   theme_classic(base_size = 24)
 ```
-
-### Density-dependence threshold
-
-As population size increases beyond a threshold, pregnancy rate decreases.
-
-```{r ddthr}
-# Blues
-bw <- sh_whales %>% filter(CommonName == "Blue Whale") %>% drop_na(preg_rate)
-bw_loess <- loess(preg_rate ~ Pop_size, bw)
-bw_pop_grid <- seq(0, 3e5, by = 100)
-bw_preg_pred <- predict(bw_loess, data.frame(Pop_size = bw_pop_grid))
-bw_dpreg_dpop <- c(Inf, diff(bw_preg_pred))
-bw_pop_thr <- bw_pop_grid[which.min(abs(bw_dpreg_dpop))]
-
-# Fins
-fw <- sh_whales %>% filter(CommonName == "Fin Whale") %>% drop_na(preg_rate)
-fw_loess <- loess(preg_rate ~ Pop_size, fw)
-fw_pop_grid <- seq(0, 3e5, by = 100)
-fw_preg_pred <- predict(fw_loess, data.frame(Pop_size = fw_pop_grid))
-fw_dpreg_dpop <- c(Inf, diff(fw_preg_pred))
-fw_pop_thr <- fw_pop_grid[which.min(abs(fw_dpreg_dpop))]
-
-pop_thr <- data.frame(CommonName = c("Blue Whale", "Fin Whale"),
-                      Pop_size = c(bw_pop_thr, fw_pop_thr))
-
-ggplot(sh_whales, aes(Pop_size, preg_rate)) + 
-  geom_point() +
-  geom_smooth(se = FALSE) +
-  geom_vline(aes(xintercept = Pop_size), data = pop_thr, color = "red") +
-  facet_grid(cols = vars(CommonName)) +
-  scale_y_continuous("Pregnancy Rate", labels = scales::percent) +
-  scale_color_manual(values = c(`TRUE` = "red", `FALSE` = "blue")) +
-  expand_limits(y = 0) +
-  theme_classic()
-```
-
-Pregnancy reaction norm?
-
-```{r preg_reaction_norm}
-bw_rnorm <- sh_whales %>% 
-  filter(CommonName == "Blue Whale",
-         Pop_size > bw_pop_thr) %>% 
-  drop_na(preg_rate) %>% 
-  lm(preg_rate ~ Pop_size, data = .)
-
-fw_rnorm <- sh_whales %>% 
-  filter(CommonName == "Fin Whale",
-         Pop_size > fw_pop_thr) %>% 
-  drop_na(preg_rate) %>% 
-  lm(preg_rate ~ Pop_size, data = .)
-```
-
