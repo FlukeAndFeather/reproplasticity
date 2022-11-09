@@ -106,3 +106,33 @@ ggplot() +
   labs(y = "Whales (1000s)") +
   theme_classic(base_size = 24)
 ```
+
+```{r preg_model}
+# Normalize population sizes wrt k, assuming max pop size is k
+preg_wide <- sh_whales %>% 
+  group_by(CommonName) %>% 
+  mutate(pop_norm = Pop_size / max(Pop_size),
+         n_preg = floor(n_f_catch * preg_rate)) %>% 
+  ungroup() %>% 
+  drop_na(n_preg) %>% 
+  filter(between(Year, 1900, 1990))
+
+# Fit the model for populations greater than k/4
+preg_glm <- glm(preg_rate ~ pop_norm * CommonName, 
+                data = filter(preg_wide, pop_norm >= 0.25), 
+                family = binomial,
+                weights = n_f_catch)
+
+# Plot results
+preg_predict <- expand_grid(
+  CommonName = unique(preg_long$CommonName),
+  pop_norm = seq(0.25, 1, length.out = 100)
+) %>% 
+  mutate(preg_rate = predict(preg_glm, newdata = ., type = "response"))
+
+ggplot(preg_predict, aes(pop_norm, preg_rate, color = CommonName)) +
+  geom_point(aes(size = n_f_catch), preg_wide, shape = 21) +
+  geom_line() +
+  theme_classic()
+```
+
