@@ -133,6 +133,28 @@ preg_predict <- expand_grid(
 ggplot(preg_predict, aes(pop_norm, preg_rate, color = CommonName)) +
   geom_point(aes(size = n_f_catch), preg_wide, shape = 21) +
   geom_line() +
+  labs(x = "norm_pop",
+       color = "sp",
+       size = "n_fem") +
   theme_classic()
 ```
+
+```{r preg_coef}
+tibble(
+  sp = names(coef(preg_glm)),
+  coef = coef(preg_glm),
+  ci_lower = confint(preg_glm)[, 1],
+  ci_upper = confint(preg_glm)[, 2]
+) %>% 
+  filter(str_detect(sp, "pop_norm*")) %>% 
+  mutate(sp = c("Blue Whale", "Fin Whale", "Sperm Whale"),
+         # Add the reference value (Blue Whale) to the others
+         across(-sp, ~ .x + ifelse(sp == "Blue Whale", 0, .x[1]))) %>% 
+  ggplot(aes(y = sp, x = coef, xmin = ci_lower, xmax = ci_upper)) +
+  scale_y_discrete(limits = rev) +
+  geom_pointrange() +
+  theme_classic() +
+  theme(axis.title.y = element_blank())
+```
+
 
