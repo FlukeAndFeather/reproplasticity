@@ -207,7 +207,8 @@ $$
 We estimate $g$ by saying the number of pregnant females caught, $n_g$, is a binomial random variable with trials equal to the number of females caught, $n_f$, and probability of pregnancy $g$.
 
 $$
-n_g \sim B(n_f, g)
+n_g \sim B(n_f, g) \\
+n_g \sim B(n_f, ae^{-bS})
 $$
 I feel good about this so far, I think. But how do I implement that non-linear model? Here's my attempt for fin whales only.
 
@@ -223,8 +224,8 @@ $$
 modrickernll <- function(par, s, ng, nf) {
   a <- par[1]
   b <- par[2]
-  if (a >= 0 && b >= 0) {
-    g <- a * exp(-b * s)
+  g <- a * exp(-b * s)
+  if (all(g >= 0 & g <= 1)) {
     nll <- -sum(dbinom(ng, size = nf, prob = g, log = TRUE))
   } else {
     nll <- 1e6
@@ -233,27 +234,51 @@ modrickernll <- function(par, s, ng, nf) {
 }
 
 # Starting parameters
-fin_data <- filter(preg_wide, CommonName == "Fin Whale")
-ricker_start_lm <- lm(log(preg_rate) ~ Pop_size, 
-                      filter(fin_data, preg_rate > 0),
-                      weights = fin_data$n_f_catch)
-a0 <- exp(coef(ricker_start_lm)["(Intercept)"])
-b0 <- -coef(ricker_start_lm)["Pop_size"]
+fin_data <- filter(preg_wide, 
+                   CommonName == "Fin Whale")
+fin_lm <- lm(log(preg_rate) ~ Pop_size, 
+             data = fin_data, 
+             weights = fin_data$n_f_catch)
+a0 <- exp(coef(fin_lm)[1])
+b0 <- -coef(fin_lm)[2]
 
 # Fit model
-ricker_mle <- optim(
-  par = c(a = a0, b = b0),
-  fn = modrickernll,
-  s = fin_data$Pop_size,
-  ng = fin_data$n_preg,
-  nf = fin_data$n_f_catch,
-  hessian = TRUE
-)
+# This doesn't work. Error: "non-finite finite-difference value [2]"
+# ricker_mle <- optim(
+#   par = c(a = a0, b = b0),
+#   fn = modrickernll,
+#   s = fin_data$Pop_size,
+#   ng = fin_data$n_preg,
+#   nf = fin_data$n_f_catch,
+#   hessian = TRUE
+# )
+
+modrickernll2 <- function(a, b, s, ng, nf) {
+  result <- modrickernll(c(a, b), s, ng, nf)
+  if (result == 1e6) NA else result
+}
+fin_loglik_space <- expand_grid(
+  a = seq(0.01, 0.99, length.out = 50),
+  b = seq(1e-8, 1e-5, length.out = 50)
+) %>% 
+  mutate(nll = map2_dbl(a, b, 
+                        modrickernll2, 
+                        s = fin_data$Pop_size, 
+                        ng = fin_data$n_preg, 
+                        nf = fin_data$n_f_catch))
+ggplot(fin_loglik_space, aes(a, b, fill = log(nll))) +
+  geom_raster()
+
+ab <- fin_loglik_space %>% 
+  filter(nll == min(nll)) %>% 
+  slice(1)
+a <- ab$a
+b <- ab$b
+
+ggplot(fin_data, aes(Pop_size, preg_rate)) +
+  geom_point(aes(size = n_f_catch), shape = 21) +
+  geom_function(fun = ~ a * exp(-b * .x)) +
+  theme_classic()
 ```
 
-```{r}
-ggplot(fin_data, aes(x = Pop_size, y = preg_rate)) +
-  geom_point() +
-  geom_function(fun = ~ a0 * exp(-b0 * .x))
-```
 
