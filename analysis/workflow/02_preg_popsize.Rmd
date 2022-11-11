@@ -126,7 +126,7 @@ preg_glm <- glm(preg_rate ~ pop_norm * CommonName,
 
 # Plot results
 preg_grid <- expand_grid(
-  CommonName = unique(preg_long$CommonName),
+  CommonName = unique(preg_wide$CommonName),
   pop_norm = seq(0.2, 1, length.out = 100)
 )
 preg_pred <- predict(preg_glm, newdata = preg_grid, type = "link", se.fit = TRUE)
@@ -153,11 +153,14 @@ ggplot(preg_grid, aes(pop_norm, preg_rate, color = CommonName)) +
               alpha = 0.25,
               color = NA) +
   geom_line() +
-  labs(x = "norm_pop",
-       color = "sp",
-       size = "n_fem") +
+  labs(x = "Population size (normalized)",
+       y = "Pregnancy probability",
+       color = "",
+       fill = "",
+       size = "Females caught (annual)") +
   theme_classic() +
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom",
+        legend.box = "vertical")
 ```
 
 ```{r preg_coef}
@@ -180,5 +183,3 @@ plot(preg_em,
   theme_classic() +
   theme(axis.title.y = element_blank())
 ```
-
-
