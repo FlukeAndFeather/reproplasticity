@@ -183,3 +183,77 @@ plot(preg_em,
   theme_classic() +
   theme(axis.title.y = element_blank())
 ```
+
+A modified Ricker model. $R$ is recruits, $S$ is stock size, $a$ and $b$ are parameters describing the number of recruits per spawner at low stock sizes and the strength of density dependence, respectively. We have $S$ (population size), we want to estimate $a$ and $b$.
+
+$$
+R = a S e^{-bS}
+$$
+
+But what's $R$? Let's consider "pregnancy" to mean "recruitment to the fetus age-class". Then $R$ is the product of pregnancy rate, $g$, and $S$.
+
+$$
+R = g S
+$$
+
+Then:
+
+$$
+R = a S e^{-bS}    \\
+g S = a S e^{-bS}  \\
+g = a e^{-bS}
+$$
+
+We estimate $g$ by saying the number of pregnant females caught, $n_g$, is a binomial random variable with trials equal to the number of females caught, $n_f$, and probability of pregnancy $g$.
+
+$$
+n_g \sim B(n_f, g)
+$$
+I feel good about this so far, I think. But how do I implement that non-linear model? Here's my attempt for fin whales only.
+
+Estimate starting parameters by fitting the following linear model.
+
+$$ 
+g = ae^{-bS}   \\
+ln(g) = -bS + ln(a)
+$$
+
+```{r modricker}
+# Negative log likelihood function
+modrickernll <- function(par, s, ng, nf) {
+  a <- par[1]
+  b <- par[2]
+  if (a >= 0 && b >= 0) {
+    g <- a * exp(-b * s)
+    nll <- -sum(dbinom(ng, size = nf, prob = g, log = TRUE))
+  } else {
+    nll <- 1e6
+  }
+  nll
+}
+
+# Starting parameters
+fin_data <- filter(preg_wide, CommonName == "Fin Whale")
+ricker_start_lm <- lm(log(preg_rate) ~ Pop_size, 
+                      filter(fin_data, preg_rate > 0),
+                      weights = fin_data$n_f_catch)
+a0 <- exp(coef(ricker_start_lm)["(Intercept)"])
+b0 <- -coef(ricker_start_lm)["Pop_size"]
+
+# Fit model
+ricker_mle <- optim(
+  par = c(a = a0, b = b0),
+  fn = modrickernll,
+  s = fin_data$Pop_size,
+  ng = fin_data$n_preg,
+  nf = fin_data$n_f_catch,
+  hessian = TRUE
+)
+```
+
+```{r}
+ggplot(fin_data, aes(x = Pop_size, y = preg_rate)) +
+  geom_point() +
+  geom_function(fun = ~ a0 * exp(-b0 * .x))
+```
+
