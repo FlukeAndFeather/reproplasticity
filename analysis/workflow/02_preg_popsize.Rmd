@@ -184,101 +184,38 @@ plot(preg_em,
   theme(axis.title.y = element_blank())
 ```
 
-A modified Ricker model. $R$ is recruits, $S$ is stock size, $a$ and $b$ are parameters describing the number of recruits per spawner at low stock sizes and the strength of density dependence, respectively. We have $S$ (population size), we want to estimate $a$ and $b$.
+Ricker model, using Maurice's approach (adapted for binomial).
 
-$$
-R = a S e^{-bS}
-$$
+```{r ricker}
+library(rstan)
+library(stats4)
+library(FSA)
 
-But what's $R$? Let's consider "pregnancy" to mean "recruitment to the fetus age-class". Then $R$ is the product of pregnancy rate, $g$, and $S$.
+fin_data <- filter(preg_wide, CommonName == "Fin Whale")
 
-$$
-R = g S
-$$
+ricker <- function(S, a, b) a * S * exp(-b * S)
 
-Then:
+# Starting values
+start <- srStarts(preg_rate ~ Pop_size, 
+                  type = "Ricker", 
+                  data = filter(fin_data, preg_rate > 0))
 
-$$
-R = a S e^{-bS}    \\
-g S = a S e^{-bS}  \\
-g = a e^{-bS}
-$$
-
-We estimate $g$ by saying the number of pregnant females caught, $n_g$, is a binomial random variable with trials equal to the number of females caught, $n_f$, and probability of pregnancy $g$.
-
-$$
-n_g \sim B(n_f, g) \\
-n_g \sim B(n_f, ae^{-bS})
-$$
-I feel good about this so far, I think. But how do I implement that non-linear model? Here's my attempt for fin whales only.
-
-Estimate starting parameters by fitting the following linear model.
-
-$$ 
-g = ae^{-bS}   \\
-ln(g) = -bS + ln(a)
-$$
-
-```{r modricker}
-# Negative log likelihood function
-modrickernll <- function(par, s, ng, nf) {
-  a <- par[1]
-  b <- par[2]
-  g <- a * exp(-b * s)
-  if (all(g >= 0 & g <= 1)) {
-    nll <- -sum(dbinom(ng, size = nf, prob = g, log = TRUE))
-  } else {
-    nll <- 1e6
-  }
-  nll
+# MLE using stats4
+linkfn <- function(x) (plogis(x) - 0.5) * 2
+ricker_nll <- function(a, b) { 
+  R <- fin_data$n_preg
+  N <- fin_data$n_f_catch
+  S <- fin_data$Pop_size
+  -sum(dbinom(R, N, linkfn(ricker(S, a, b)), log = TRUE))
 }
-
-# Starting parameters
-fin_data <- filter(preg_wide, 
-                   CommonName == "Fin Whale")
-fin_lm <- lm(log(preg_rate) ~ Pop_size, 
-             data = fin_data, 
-             weights = fin_data$n_f_catch)
-a0 <- exp(coef(fin_lm)[1])
-b0 <- -coef(fin_lm)[2]
-
-# Fit model
-# This doesn't work. Error: "non-finite finite-difference value [2]"
-# ricker_mle <- optim(
-#   par = c(a = a0, b = b0),
-#   fn = modrickernll,
-#   s = fin_data$Pop_size,
-#   ng = fin_data$n_preg,
-#   nf = fin_data$n_f_catch,
-#   hessian = TRUE
-# )
-
-modrickernll2 <- function(a, b, s, ng, nf) {
-  result <- modrickernll(c(a, b), s, ng, nf)
-  if (result == 1e6) NA else result
-}
-fin_loglik_space <- expand_grid(
-  a = seq(0.01, 0.99, length.out = 50),
-  b = seq(1e-8, 1e-5, length.out = 50)
-) %>% 
-  mutate(nll = map2_dbl(a, b, 
-                        modrickernll2, 
-                        s = fin_data$Pop_size, 
-                        ng = fin_data$n_preg, 
-                        nf = fin_data$n_f_catch))
-ggplot(fin_loglik_space, aes(a, b, fill = log(nll))) +
-  geom_raster()
-
-ab <- fin_loglik_space %>% 
-  filter(nll == min(nll)) %>% 
-  slice(1)
-a <- ab$a
-b <- ab$b
-
-ggplot(fin_data, aes(Pop_size, preg_rate)) +
-  geom_point(aes(size = n_f_catch), shape = 21) +
-  geom_function(fun = ~ a * exp(-b * .x)) +
-  theme_classic()
+ricker_mle <- mle(ricker_nll, 
+                  start = start, 
+                  lower = list(a = 0, b = 0))
 ```
+
+
+
+
+
 
 
