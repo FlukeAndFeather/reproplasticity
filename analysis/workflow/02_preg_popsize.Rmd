@@ -183,39 +183,3 @@ plot(preg_em,
   theme_classic() +
   theme(axis.title.y = element_blank())
 ```
-
-Ricker model, using Maurice's approach (adapted for binomial).
-
-```{r ricker}
-library(rstan)
-library(stats4)
-library(FSA)
-
-fin_data <- filter(preg_wide, CommonName == "Fin Whale")
-
-ricker <- function(S, a, b) a * S * exp(-b * S)
-
-# Starting values
-start <- srStarts(preg_rate ~ Pop_size, 
-                  type = "Ricker", 
-                  data = filter(fin_data, preg_rate > 0))
-
-# MLE using stats4
-linkfn <- function(x) (plogis(x) - 0.5) * 2
-ricker_nll <- function(a, b) { 
-  R <- fin_data$n_preg
-  N <- fin_data$n_f_catch
-  S <- fin_data$Pop_size
-  -sum(dbinom(R, N, linkfn(ricker(S, a, b)), log = TRUE))
-}
-ricker_mle <- mle(ricker_nll, 
-                  start = start, 
-                  lower = list(a = 0, b = 0))
-```
-
-
-
-
-
-
-
