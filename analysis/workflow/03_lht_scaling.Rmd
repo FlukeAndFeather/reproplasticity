@@ -1,0 +1,78 @@
+---
+title: "Life history oddballs"
+author: "Max Czapanskiy"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r init}
+library(dplyr)
+library(ggplot2)
+library(purrr)
+library(readr)
+library(tidyr)
+```
+
+# Scaling of life history traits
+
+Quantifying great whales' pace-of-life 
+
+## Life history traits
+
+From [Myhrvold et al. (2015) *Ecology*](https://dx.doi.org/10.1890/15-0846.1)
+
+```{r lht}
+mammal_lht <- read_csv(
+  here::here("analysis", "data", "raw_data", "Amniote_Database_Aug_2015.csv"),
+) %>% 
+  mutate(
+    across(everything(), ~ na_if(.x, -999)),
+    offspring_per_y = litter_or_clutch_size_n * litters_or_clutches_per_y,
+    great_whale = case_when(
+      paste(genus, species) == "Balaenoptera musculus"  ~ "Blue Whale",
+      paste(genus, species) == "Balaenoptera physalus"  ~ "Fin Whale",
+      # Note outdated species name
+      paste(genus, species) == "Physeter catodon" ~ "Sperm Whale",
+      TRUE ~ NA_character_
+    )
+  ) %>% 
+  filter(class == "Mammalia")
+
+life_history_plot <- function(param_col, param_pretty) {
+  lbls_exp <- function(brks) {
+    round(exp(brks), 1)
+  }
+  pal <- c(
+  "Blue Whale" = "#7DC0EA",
+  "Fin Whale" = "#4CA888",
+  "Sperm Whale" = "#E3B03C",
+  `NA` = "black"
+)
+  mammal_lht %>% 
+    drop_na(adult_body_mass_g, {{ param_col }}) %>% 
+    mutate(log_mass = log(adult_body_mass_g / 1000),
+           log_param = log({{ param_col }})) %>% 
+    ggplot(aes(log_mass, log_param)) +
+    geom_point(aes(color = great_whale)) +
+    geom_smooth(method = "lm", formula = y ~ x) +
+    scale_color_manual(values = pal) +
+    scale_x_continuous("Adult mass (kg)", 
+                       labels = lbls_exp) +
+    scale_y_continuous(param_pretty, 
+                       labels = lbls_exp) +
+    expand_limits(x = 0, y = 0) +
+    theme_classic() +
+    theme(legend.position = "none")
+}
+
+lht_plots <- map2(
+  quos(female_maturity_d, gestation_d, weaning_d, longevity_y, offspring_per_y),
+  c("Female age at maturity (days)", "Gestation (days)", "Weaning (days)", "Longevity (years)", "Offspring per year"),
+  life_history_plot
+)
+print(lht_plots)
+```
+
