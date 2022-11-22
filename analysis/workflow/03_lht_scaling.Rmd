@@ -11,8 +11,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r init}
 library(dplyr)
 library(ggplot2)
+library(phytools)
 library(purrr)
 library(readr)
+library(rotl)
 library(tidyr)
 ```
 
@@ -22,7 +24,7 @@ Quantifying great whales' pace-of-life
 
 ## Life history traits
 
-From [Myhrvold et al. (2015) *Ecology*](https://dx.doi.org/10.1890/15-0846.1)
+From [Myhrvold et al. (2015) *Ecology*](https://doi.org/10.1890/15-0846R.1)
 
 ```{r lht}
 mammal_lht <- read_csv(
@@ -76,3 +78,39 @@ lht_plots <- map2(
 print(lht_plots)
 ```
 
+## With phylogeny
+
+Now correct for phylogeny. Using mammal tree from [Upham et al. (2019) *PLOS*](https://doi.org/10.1371/journal.pbio.3000494), downloaded from [VertLife](http://verlife.org/phylosubsets).
+
+```{r resolve_tax}
+# There are 100 trees in the nexus file because they're generated probabilistically.
+mammal_trs <- read.nexus(here::here("analysis", "data", "raw_data", "mammals.nex"))
+# We'll try the analysis on the first one
+mammal_tr <- mammal_trs[[1]]
+
+# 344 species are in the life history trait database but not the phylogeny. I 
+# manually verified the results of rotl::tnrs_match_names() to resolve 
+# taxonomic disagreements. Results of manual audit saved to CSV file.
+lht_tax_missing <- mammal_lht %>% 
+  mutate(binomial = paste(genus, species, sep = "_"),
+         binomial2 = paste(genus, species, sep = " "),
+         in_tree = binomial %in% mammal_tr$tip.label) %>% 
+  filter(!in_tree) %>% 
+  pull(binomial2)
+lht_tax <- tnrs_match_names(lht_tax_missing,
+                            context_name = "Mammals")
+head(lht_tax)
+
+# Applying taxonomic name resolution reduced missing taxa from 344 to 61, 
+# yielding 4892 usable species.
+lht_tax_corrections <- read_csv(here::here("analysis", "data", "raw_data", "tnr_lht.csv")) %>% 
+  drop_na(corrected_name) %>% 
+  select(search_string, corrected_name)
+mammal_lht_corr <- mammal_lht %>% 
+  mutate(search_string = trimws(tolower(paste(genus, species)))) %>% 
+  left_join(lht_tax_corrections, by = "search_string") %>% 
+  mutate(tree_name = coalesce(corrected_name, paste(genus, species, sep = "_")),
+         in_tree = tree_name %in% mammal_tr$tip.label)
+count(mammal_lht_corr, in_tree)
+mammal_lht_corr <- filter(mammal_lht_corr, in_tree)
+```
