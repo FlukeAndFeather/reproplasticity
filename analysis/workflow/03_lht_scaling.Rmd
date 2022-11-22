@@ -114,3 +114,14 @@ mammal_lht_corr <- mammal_lht %>%
 count(mammal_lht_corr, in_tree)
 mammal_lht_corr <- filter(mammal_lht_corr, in_tree)
 ```
+
+```{r phypca}
+mammal_lht_mtx <- mammal_lht_corr %>% 
+  select(female_maturity_d, gestation_d, weaning_d, longevity_y, offspring_per_y) %>% 
+  as.matrix()
+row.names(mammal_lht_mtx) <- mammal_lht_corr$tree_name
+mammal_lht_pca <- phyl.pca(tree = mammal_tr, 
+                           Y = mammal_lht_mtx, 
+                           method = "lambda", 
+                           mode = "corr")
+```
