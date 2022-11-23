@@ -34,6 +34,7 @@ mammal_lht <- read_csv(
     across(everything(), ~ na_if(.x, -999)),
     inter_birth_interval_y = 1 / litters_or_clutches_per_y,
     adult_body_mass_kg = adult_body_mass_g,
+    gestation_weaning_d = gestation_d + weaning_d,
     great_whale = case_when(
       paste(genus, species) == "Balaenoptera musculus"  ~ "Blue Whale",
       paste(genus, species) == "Balaenoptera physalus"  ~ "Fin Whale",
@@ -72,9 +73,9 @@ life_history_plot <- function(param_col, param_pretty) {
 }
 
 lht_plots <- map2(
-  quos(female_maturity_d, gestation_d, weaning_d, longevity_y, 
+  quos(female_maturity_d, gestation_weaning_d, longevity_y, 
        litter_or_clutch_size_n, inter_birth_interval_y),
-  c("Female age at maturity (days)", "Gestation (days)", "Weaning (days)", 
+  c("Female age at maturity (days)", "Gestation + Weaning (days)", 
     "Longevity (years)", "Fecundity (n offspring)", "Inter-birth interval (y)"),
   life_history_plot
 )
@@ -119,57 +120,40 @@ mammal_lht_corr <- filter(mammal_lht_corr, in_tree)
 ```
 
 ```{r prep_lht_phy}
-# Impute LHTs as median of genus
-impute_lht <- function(col, col_name, all_data) {
-  if_else(is.na(col), all_data[[paste0(col_name, "_genus")]], col)
-}
-mammal_lht_impute <- mammal_lht_corr %>% 
-  # Aggregate species' traits (taxonomic resolution may lead to lumping)
-  group_by(genus, species, tree_name, adult_body_mass_kg) %>% 
-  summarize(
-    across(
-      c(female_maturity_d, gestation_d, weaning_d, longevity_y, 
-        litter_or_clutch_size_n, inter_birth_interval_y),
-      median,
-      na.rm = TRUE
-    ),
-    .groups = "drop"
-  ) %>% 
-  # Calculate genus-level traits (median)
-  group_by(genus) %>% 
-  mutate(
-    across(
-      c(female_maturity_d, gestation_d, weaning_d, longevity_y, 
-        litter_or_clutch_size_n, inter_birth_interval_y),
-      median,
-      .names = "{.col}_genus",
-      na.rm = TRUE
-    )
-  ) %>% 
-  ungroup() %>% 
-  # Impute 
-  mutate(
-    across(
-      c(female_maturity_d, gestation_d, weaning_d, longevity_y, 
-        litter_or_clutch_size_n, inter_birth_interval_y),
-      ~ impute_lht(.x, cur_column(), cur_data_all()),
-      .names = "{.col}_impute"
-    )
-  )
-
 # Convert to matrix and drop incomplete rows
-mammal_lht_mtx <- mammal_lht_impute %>% 
-  select(adult_body_mass_kg, ends_with("impute")) %>% 
+# Leaves 1341 species
+mammal_lht_mtx <- mammal_lht_corr %>% 
+  select(adult_body_mass_kg, female_maturity_d, gestation_weaning_d, 
+         longevity_y, litter_or_clutch_size_n, inter_birth_interval_y) %>% 
   as.matrix()
-row.names(mammal_lht_mtx) <- mammal_lht_impute$tree_name
+row.names(mammal_lht_mtx) <- mammal_lht_corr$tree_name
 complete_rows <- apply(mammal_lht_mtx, 1, function(row) !any(is.na(row)))
 mammal_lht_mtx <- mammal_lht_mtx[complete_rows, ]
+
+# Subset tree to retained species
+mammal_tr2 <- keep.tip(mammal_tr, rownames(mammal_lht_mtx))
 ```
 
-See [Jeschke and Kokko (2009)](https://doi.org/10.1007/s10682-008-9276-y) *Evolutionary Ecology*
+Calculate size residuals. See [Jeschke and Kokko (2009)](https://doi.org/10.1007/s10682-008-9276-y) *Evolutionary Ecology*
 
 ```{r size_resid}
-# Calculate size residuals
-lht_size_resid <- phyl.resid(mammal_tr, )
+# Take a subset for testing
+set.seed(100)
+mammal_lht_mtx2 <- mammal_lht_mtx[sample(seq(nrow(mammal_lht_mtx)), 100), ]
+mammal_tr3 <- keep.tip(mammal_tr2, rownames(mammal_lht_mtx2))
+
+# Rescale variables
+for (j in 2:ncol(mammal_lht_mtx2)) {
+  mu = mean(mammal_lht_mtx2[, j])
+  sigma = sd(mammal_lht_mtx2[, j])
+  mammal_lht_mtx2[, j] = (mammal_lht_mtx2[, j] - mu) / sigma
+}
+
+lht_size_resid <- phyl.resid(
+  mammal_tr3, 
+  mammal_lht_mtx2[, "adult_body_mass_kg"],
+  mammal_lht_mtx2[, colnames(mammal_lht_mtx) != "adult_body_mass_kg"],
+  method = "lambda"
+)
 ```
 
