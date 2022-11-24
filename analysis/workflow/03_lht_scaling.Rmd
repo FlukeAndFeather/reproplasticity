@@ -9,9 +9,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r init}
+library(ape)
 library(dplyr)
 library(ggplot2)
-library(phytools)
+library(here)
+library(nlme)
 library(purrr)
 library(readr)
 library(rotl)
@@ -28,7 +30,7 @@ From [Myhrvold et al. (2015) *Ecology*](https://doi.org/10.1890/15-0846R.1)
 
 ```{r lht}
 mammal_lht <- read_csv(
-  here::here("analysis", "data", "raw_data", "Amniote_Database_Aug_2015.csv"),
+  here("analysis", "data", "raw_data", "Amniote_Database_Aug_2015.csv"),
 ) %>% 
   mutate(
     across(everything(), ~ na_if(.x, -999)),
@@ -88,7 +90,7 @@ Now correct for phylogeny. Using mammal tree from [Upham et al. (2019) *PLOS*](h
 
 ```{r resolve_tax}
 # There are 100 trees in the nexus file because they're generated probabilistically.
-mammal_trs <- read.nexus(here::here("analysis", "data", "raw_data", "mammals.nex"))
+mammal_trs <- read.nexus(here("analysis", "data", "raw_data", "mammals.nex"))
 # We'll try the analysis on the first one
 mammal_tr <- mammal_trs[[1]]
 
@@ -105,55 +107,85 @@ lht_tax <- tnrs_match_names(lht_tax_missing,
                             context_name = "Mammals")
 head(lht_tax)
 
-# Applying taxonomic name resolution reduced missing taxa from 344 to 61, 
-# yielding 4892 usable species.
-lht_tax_corrections <- read_csv(here::here("analysis", "data", "raw_data", "tnr_lht.csv")) %>% 
+# As a result of taxonomy resolution, some species were lumped. Aggregate
+# their life history traits by the median. Drop species with incomplete LHT
+# records.
+lht_tax_resolutions <- here("analysis", "data", "raw_data", "tnr_lht.csv") %>% 
+  read_csv() %>% 
   drop_na(corrected_name) %>% 
   select(search_string, corrected_name)
-mammal_lht_corr <- mammal_lht %>% 
+mammal_lht_resolved <- mammal_lht %>% 
   mutate(search_string = trimws(tolower(paste(genus, species)))) %>% 
-  left_join(lht_tax_corrections, by = "search_string") %>% 
+  left_join(lht_tax_resolutions, by = "search_string") %>% 
   mutate(tree_name = coalesce(corrected_name, paste(genus, species, sep = "_")),
-         in_tree = tree_name %in% mammal_tr$tip.label)
-count(mammal_lht_corr, in_tree)
-mammal_lht_corr <- filter(mammal_lht_corr, in_tree)
-```
-
-```{r prep_lht_phy}
-# Convert to matrix and drop incomplete rows
-# Leaves 1341 species
-mammal_lht_mtx <- mammal_lht_corr %>% 
-  select(adult_body_mass_kg, female_maturity_d, gestation_weaning_d, 
+         in_tree = tree_name %in% mammal_tr$tip.label) %>% 
+  filter(in_tree) %>% 
+  select(tree_name, adult_body_mass_kg, female_maturity_d, gestation_weaning_d, 
          longevity_y, litter_or_clutch_size_n, inter_birth_interval_y) %>% 
-  as.matrix()
-row.names(mammal_lht_mtx) <- mammal_lht_corr$tree_name
-complete_rows <- apply(mammal_lht_mtx, 1, function(row) !any(is.na(row)))
-mammal_lht_mtx <- mammal_lht_mtx[complete_rows, ]
+  drop_na() %>% 
+  group_by(tree_name) %>% 
+  summarize(across(everything(), median, na.rm = TRUE))
+# Leaves 1322 species
 
 # Subset tree to retained species
-mammal_tr2 <- keep.tip(mammal_tr, rownames(mammal_lht_mtx))
+mammal_tr_subset <- keep.tip(mammal_tr, mammal_lht_resolved$tree_name)
 ```
 
 Calculate size residuals. See [Jeschke and Kokko (2009)](https://doi.org/10.1007/s10682-008-9276-y) *Evolutionary Ecology*
 
 ```{r size_resid}
-# Take a subset for testing
-set.seed(100)
-mammal_lht_mtx2 <- mammal_lht_mtx[sample(seq(nrow(mammal_lht_mtx)), 100), ]
-mammal_tr3 <- keep.tip(mammal_tr2, rownames(mammal_lht_mtx2))
-
-# Rescale variables
-for (j in 2:ncol(mammal_lht_mtx2)) {
-  mu = mean(mammal_lht_mtx2[, j])
-  sigma = sd(mammal_lht_mtx2[, j])
-  mammal_lht_mtx2[, j] = (mammal_lht_mtx2[, j] - mu) / sigma
+# lht should be a column name e.g. "female_maturity_d"
+fit_pgls <- function(lht) {
+  f <- update(~ log(adult_body_mass_kg), 
+              as.formula(sprintf("log(%s) ~ .", lht)))
+  cor <- corBrownian(phy = mammal_tr_subset, form = ~ tree_name)
+  gls(f, mammal_lht_resolved, cor, method = "ML")
 }
-
-lht_size_resid <- phyl.resid(
-  mammal_tr3, 
-  mammal_lht_mtx2[, "adult_body_mass_kg"],
-  mammal_lht_mtx2[, colnames(mammal_lht_mtx) != "adult_body_mass_kg"],
-  method = "lambda"
+pgls_models <- map(
+  c("female_maturity_d", "gestation_weaning_d", "longevity_y", 
+    "litter_or_clutch_size_n", "inter_birth_interval_y"),
+  fit_pgls
 )
+mammal_lht_size <- mammal_lht_resolved %>% 
+  mutate(female_maturity_d_resid = resid(pgls_models[[1]]),
+         gestation_weaning_d_resid = resid(pgls_models[[2]]),
+         longevity_y_resid = resid(pgls_models[[3]]),
+         litter_or_clutch_size_n_resid = resid(pgls_models[[4]]),
+         inter_birth_interval_y_resid = resid(pgls_models[[5]]))
 ```
+
+```{r lht_pca}
+# PCA analysis
+pca_mtx <- mammal_lht_size %>% 
+  tibble::column_to_rownames("tree_name") %>% 
+  mutate(across(ends_with("resid"), ~ (.x - mean(.x)) / sd(.x))) %>% 
+  select(ends_with("resid")) %>% 
+  as.matrix()
+lht_pca <- prcomp(pca_mtx, center = FALSE, scale = FALSE)
+lht_loadings <- as.data.frame(lht_pca$rotation)
+lht_scores <- predict(lht_pca)
+lht_importance <- summary(lht_pca)$importance
+pc1_var <- lht_importance["Proportion of Variance", "PC1"]
+pc2_var <- lht_importance["Proportion of Variance", "PC2"]
+
+# Plot
+mammal_lht_pca <- mammal_lht_size %>% 
+  mutate(pca1 = lht_scores[, 1],
+         pca2 = lht_scores[, 2])
+ggplot(mammal_lht_pca, aes(pca1, pca2)) +
+  geom_point(alpha = 0.5) +
+  geom_segment(aes(x = 0, y = 0, xend = PC1, yend = PC2),
+               lht_loadings,
+               arrow = arrow(length = unit(0.03, "npc")), 
+               alpha = 0.2) +
+  geom_text(aes(x = PC1, y = PC2, label = rownames(lht_loadings)),
+            lht_loadings) +
+  labs(
+    x = sprintf("PC1 (%0.1f%%)", round(pca1_var * 100, 1)),
+    y = sprintf("PC2 (%0.1f%%)", round(pca2_var * 100, 1))
+  ) +
+  coord_fixed() +
+  theme_classic()
+```
+
 
