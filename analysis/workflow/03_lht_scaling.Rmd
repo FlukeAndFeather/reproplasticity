@@ -163,16 +163,16 @@ pca_mtx <- mammal_lht_size %>%
   as.matrix()
 lht_pca <- prcomp(pca_mtx, center = FALSE, scale = FALSE)
 lht_loadings <- as.data.frame(lht_pca$rotation)
-lht_scores <- predict(lht_pca)
+lht_scores <- as.data.frame(predict(lht_pca))
 lht_importance <- summary(lht_pca)$importance
 pc1_var <- lht_importance["Proportion of Variance", "PC1"]
 pc2_var <- lht_importance["Proportion of Variance", "PC2"]
 
 # Plot
 mammal_lht_pca <- mammal_lht_size %>% 
-  mutate(pca1 = lht_scores[, 1],
-         pca2 = lht_scores[, 2])
-ggplot(mammal_lht_pca, aes(pca1, pca2)) +
+  mutate(pc1 = lht_scores$PC1,
+         pc2 = lht_scores$PC2)
+ggplot(mammal_lht_pca, aes(pc1, pc2)) +
   geom_point(alpha = 0.5) +
   geom_segment(aes(x = 0, y = 0, xend = PC1, yend = PC2),
                lht_loadings,
@@ -181,11 +181,62 @@ ggplot(mammal_lht_pca, aes(pca1, pca2)) +
   geom_text(aes(x = PC1, y = PC2, label = rownames(lht_loadings)),
             lht_loadings) +
   labs(
-    x = sprintf("PC1 (%0.1f%%)", round(pca1_var * 100, 1)),
-    y = sprintf("PC2 (%0.1f%%)", round(pca2_var * 100, 1))
+    x = sprintf("PC1 (%0.1f%%)", round(pc1_var * 100, 1)),
+    y = sprintf("PC2 (%0.1f%%)", round(pc2_var * 100, 1))
   ) +
   coord_fixed() +
   theme_classic()
+
+pal <- c(
+  "Balaenoptera_physalus" = "#4CA888",
+  "Balaenoptera_musculus" = "#7DC0EA",
+  "Physeter_macrocephalus" = "#E3B03C",
+  "Bison_bison" = "red"
+)
+ggplot(mammal_lht_pca, aes(pc1)) + 
+  geom_density() + 
+  geom_vline(
+    aes(xintercept = pc1, color = tree_name),
+    filter(mammal_lht_pca, tree_name %in% c("Physeter_macrocephalus",
+                                            "Balaenoptera_physalus",
+                                            "Balaenoptera_musculus"))
+  ) +
+  scale_color_manual(values = pal) +
+  theme_classic()
 ```
 
+By order
+
+```{r pol_orders}
+orders <- mammal_lht %>% 
+  mutate(search_string = trimws(tolower(paste(genus, species)))) %>% 
+  left_join(lht_tax_resolutions, by = "search_string") %>% 
+  mutate(tree_name = coalesce(corrected_name, paste(genus, species, sep = "_")),
+         in_tree = tree_name %in% mammal_tr$tip.label) %>% 
+  filter(in_tree) %>% 
+  select(tree_name, order) %>% 
+  distinct()
+
+great_whales_pol <- mammal_lht_pca %>% 
+  filter(tree_name %in% c("Physeter_macrocephalus",
+                          "Balaenoptera_physalus",
+                          "Balaenoptera_musculus")) %>% 
+  mutate(order = "Cetacea")
+bison_pol = mammal_lht_pca %>% 
+  filter(tree_name == "Bison_bison") %>% 
+  mutate(order = "Artiodactyla")
+
+mammal_lht_pca %>% 
+  left_join(orders, by = "tree_name") %>%
+  mutate(order = forcats::fct_reorder(order, pc1)) %>% 
+  ggplot(aes(x = pc1, y = order)) +
+  geom_boxplot() +
+  geom_point(aes(color = tree_name), great_whales_pol) +
+  geom_point(aes(color = tree_name), bison_pol) +
+  scale_color_manual(values = pal) +
+  labs(x = "Pace of life") +
+  theme_classic() +
+  theme(axis.title.y = element_blank(),
+        legend.position = "none")
+```
 
