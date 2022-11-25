@@ -221,7 +221,10 @@ great_whales_pol <- mammal_lht_pca %>%
   filter(tree_name %in% c("Physeter_macrocephalus",
                           "Balaenoptera_physalus",
                           "Balaenoptera_musculus")) %>% 
-  mutate(order = "Cetacea")
+  mutate(order = "Cetacea",
+         clade = ifelse(tree_name == "Physeter_macrocephalus",
+                        "Odontoceti",
+                        "Mysticeti"))
 bison_pol = mammal_lht_pca %>% 
   filter(tree_name == "Bison_bison") %>% 
   mutate(order = "Artiodactyla")
@@ -233,6 +236,84 @@ mammal_lht_pca %>%
   geom_boxplot() +
   geom_point(aes(color = tree_name), great_whales_pol) +
   geom_point(aes(color = tree_name), bison_pol) +
+  scale_color_manual(values = pal) +
+  labs(x = "Pace of life") +
+  theme_classic() +
+  theme(axis.title.y = element_blank(),
+        legend.position = "none")
+```
+
+As an aside, are the apparent parallels in life history between mysticeti/phocidae vs odontoceti/otariidae reflected in the pace of life metric? Apparently so!
+
+```{r an_aside}
+marmam_pca <- mammal_lht %>% 
+  mutate(search_string = trimws(tolower(paste(genus, species)))) %>% 
+  left_join(lht_tax_resolutions, by = "search_string") %>% 
+  mutate(tree_name = coalesce(corrected_name, paste(genus, species, sep = "_")),
+         in_tree = tree_name %in% mammal_tr$tip.label) %>% 
+  filter(in_tree, 
+         (order == "Cetacea" |
+            family %in% c("Otariidae",
+                          "Phocidae"))) %>% 
+  select(tree_name, order, family) %>% 
+  distinct() %>% 
+  mutate(clade = case_when(
+    family == "Balaenidae" ~ "Mysticeti",
+    family == "Balaenopteridae" ~ "Mysticeti",
+    family == "Delphinidae" ~ "Odontoceti",
+    family == "Eschrichtiidae" ~ "Mysticeti",
+    family == "Iniidae" ~ "Odontoceti",
+    family == "Monodontidae" ~ "Odontoceti",
+    family == "Neobalaenidae" ~ "Mysticeti",
+    family == "Otariidae" ~ "Otariidae",
+    family == "Phocidae" ~ "Phocidae",
+    family == "Phocoenidae" ~ "Odontoceti",
+    family == "Physeteridae" ~ "Odontoceti",
+    family == "Platanistidae" ~ "Odontoceti",
+    family == "Ziphiidae" ~ "Odontoceti",
+  )) %>% 
+  inner_join(mammal_lht_pca, by = "tree_name") %>%
+  mutate(clade = factor(clade, 
+                        levels = c("Odontoceti", "Mysticeti", 
+                                   "Phocidae", "Otariidae")))
+
+# Mysticeti vs Odontoceti
+mys_odo_ttest <- t.test(
+  pc1 ~ clade,
+  filter(marmam_pca, clade %in% c("Mysticeti", "Odontoceti")),
+  alternative = "less",
+  paired = FALSE
+)
+pho_ota_ttest <- t.test(
+  pc1 ~ clade,
+  filter(marmam_pca, clade %in% c("Phocidae", "Otariidae")),
+  alternative = "less",
+  paired = FALSE
+)
+
+pval_annotation <- function(pval, thr = 1e-4, digits = 2) {
+  ifelse(pval < thr, 
+         sprintf("p < %f", signif(thr, digits)),
+         sprintf("p = %f", signif(pval, digits))) %>% 
+    sub("0+$", "", .)
+}
+marmam_signif <- tibble(
+  comps = list(
+    c("Mysticeti", "Odontoceti"),
+    c("Phocidae", "Otariidae")
+  ),
+  pvalues = c(mys_odo_ttest$p.value, pho_ota_ttest$p.value),
+  annotations = pval_annotation(pvalues)
+)
+
+ggplot(marmam_pca, aes(x = pc1, y = clade)) +
+  geom_boxplot() +
+  geom_point(aes(color = tree_name), great_whales_pol, size = 3) +
+  ggsignif::geom_signif(
+    comparisons = marmam_signif$comps,
+    annotations = marmam_signif$annotations,
+    step_increase = 0
+  ) +
   scale_color_manual(values = pal) +
   labs(x = "Pace of life") +
   theme_classic() +
