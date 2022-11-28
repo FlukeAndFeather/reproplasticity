@@ -2,7 +2,7 @@ Package: reproplasticity
 Title: What the Package Does (One Line, Title Case)
 Version: 0.0.0.9000
 Authors@R:
-    person("Max", "Czapanskiy", , "maxczap@stanford.edu", role = c("aut", "cre"),
+    person("Max", "Czapanskiy", , "maxczapanskiy@gmail.com", role = c("aut", "cre"),
            comment = c("ORCID-ID" = "0000-0002-6302-905X"))
 Description: What the package does (one paragraph).
 License: MIT + file LICENSE
@@ -11,7 +11,11 @@ Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
-Imports: bookdown,
-    here
+Imports: 
+    bookdown,
+    dplyr,
+    here,
+    readr,
+    targets
 Suggests: devtools,
     git2r
