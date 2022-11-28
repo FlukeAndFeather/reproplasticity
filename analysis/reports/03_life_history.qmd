@@ -1,0 +1,46 @@
+---
+title: "Life History Report"
+format:
+  html:
+    embed-resources: true
+editor: visual
+---
+
+```{r}
+#| label: initialize
+#| include: false
+library(here)
+library(targets)
+
+source(here("R", "plot.R"))
+```
+
+# Scaling of life history traits
+
+Quantify great whales' pace-of-life relative to mammals. Account for effects of body size and phylogeny. See [Jeschke and Kokko (2009)](https://doi.org/10.1007/s10682-008-9276-y) *Evolutionary Ecology*, [Revell (2014)](https://doi.org/10.1111/j.2041-210X.2011.00169.x) *Methods in Ecology and Evolution*, [Soriano-Redondo et al. (2020)](https://doi.org/10.1038/s41467-020-19256-0) *Nature Communications*.
+
+## Life history traits
+
+First we need a database of life history traits, which we get from [Myhrvold et al. (2015) *Ecology*](https://doi.org/10.1890/15-0846R.1). Notice how life history traits vary substantially with body size. In this and other reports, orange represents Sperm Whales, green Fins, and blue Blues.
+
+```{r}
+#| label: life_history_plots
+#| echo: false
+
+mammal_lht <- tar_read("mammal_lht")
+lht_plots <- tar_read("lht_plots")
+
+cowplot::plot_grid(plotlist = lht_plots, nrow = 2)
+```
+
+## Phylogeny
+
+Now we account for phylogeny. Using a mammal tree from [Upham et al. (2019) *PLOS*](https://doi.org/10.1371/journal.pbio.3000494), downloaded from [VertLife](http://verlife.org/phylosubsets).
+
+TODO: "We constructed a single species-level phylogenetic consensus tree for birds using 1000 phylogenetic trees from the BirdTree project with the phytools package in R (ver. 3.5.2)." (Soriano-Redondo et al. 2020). Can we do something similar with the vertlife trees?
+
+```{r}
+#| label: phylogeny
+#| echo: false
+
+```

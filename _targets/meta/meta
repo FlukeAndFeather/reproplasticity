@@ -1,5 +1,16 @@
 name|type|data|command|depend|seed|path|time|size|bytes|format|repository|iteration|parent|children|seconds|warnings|error
-depends|object|95d8f1fcfde0f7f7|||||||||||||||
+.Random.seed|object|2658b82d29dbcd6a|||||||||||||||
+depends|object|f18bfe5f062f7455|||||||||||||||
+lht_cols|object|24f940cfaf66a309|||||||||||||||
+lht_names|object|d75387447bd3ad45|||||||||||||||
+lht_plots|stem|f94facf099ee59ed|a13aa621b23c1ee2|a5ecf00092b838cc|1618388281||t19324.58852137s|48526a1609662e6c|4371111|rds|local|vector|||0.206||
+lht_report|stem|617a3c7868af0b5d|90e855baba6f9986|19419dd9c75dac10|-89480673|analysis/reports/03_life_history.html*analysis/reports/03_life_history.qmd|t19324.5976259619s|1d257b73fb789726|1278489|file|local|vector|||8.527||
+life_history_plot|function|9f9dd1647161b809|||||||||||||||
+make_lht_plots|function|f13e8236cd3357a2|||||||||||||||
 mammal_lht|stem|027675a9f2050f0f|cc5c47934474eb8b|b38a4a20662b6245|698390604||t19324.5570951285s|f34d44a14bc2b6e4|200336|rds|local|vector|||0.358||
 mammal_lht_path|stem|2f269c79e5c66992|59437f9201155798|4e3739ef91745af0|-982487568|/Users/frank/Documents/GitHub/collab/reproplasticity/analysis/data/raw_data/Amniote_Database_Aug_2015.csv|t19316.0321845281s|1f1495d446ed105e|4728122|file|local|vector|||0.265||
+mammal_tr|stem|101dde3a2ceb429a|68bbf2916e2fce06|8f3e0a8a1521304e|831770464||t19324.5964309402s|64588fd0623bf62f|41537|rds|local|vector|||7.57||
+mammal_tr_path|stem|be4e615f4efec491|e9c6965de071b375|4e3739ef91745af0|-151052576|/Users/frank/Documents/GitHub/collab/reproplasticity/analysis/data/raw_data/mammals.nex|t3620.33333333333s|d9e8f0d44d4c702b|27217374|file|local|vector|||0.002||
 read_lht|function|c917cabb484a1f56|||||||||||||||
+read_tree|function|2ba59d9d3c497820|||||||||||||||
+tax_resolutions_path|stem|bef679ee2713baab|6ff0ea92b0a5bf9c|4e3739ef91745af0|-1227156501|/Users/frank/Documents/GitHub/collab/reproplasticity/analysis/data/raw_data/tnr_lht.csv|t19318.2988596997s|5fecdbe88f911da5|28088|file|local|vector|||0.304||

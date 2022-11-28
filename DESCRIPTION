@@ -12,10 +12,16 @@ LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
 Imports: 
+    ape,
     bookdown,
+    cowplot,
     dplyr,
+    ggplot2,
     here,
+    purrr,
     readr,
-    targets
+    tarchetypes,
+    targets,
+    tidyr
 Suggests: devtools,
     git2r
