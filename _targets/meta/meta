@@ -1,0 +1,15 @@
+name|type|data|command|depend|seed|path|time|size|bytes|format|repository|iteration|parent|children|seconds|warnings|error
+.Random.seed|object|c4cf10187ad1fadf|||||||||||||||
+depends|object|ef8b3798f2bbf19d|||||||||||||||
+lht_report|stem|3eb8cbffde54570c|fef4392c8a086523|3c104fb4fae15bac|-89480673|analysis/reports/03_life_history.html*analysis/reports/03_life_history.qmd|t19324.6593991605s|4ad70b6a151d3573|1350633|file|local|vector|||5.7||
+life_history_plot|function|0aa04fef6b6df353|||||||||||||||
+mammal_lht|stem|027675a9f2050f0f|cc5c47934474eb8b|b38a4a20662b6245|698390604||t19324.6593336529s|f34d44a14bc2b6e4|200336|rds|local|vector|||0.459||
+mammal_lht_path|stem|2f269c79e5c66992|59437f9201155798|4e3739ef91745af0|-982487568|/Users/frank/Documents/GitHub/collab/reproplasticity/analysis/data/raw_data/Amniote_Database_Aug_2015.csv|t19316.0321845281s|1f1495d446ed105e|4728122|file|local|vector|||0.001||
+mammal_tr|stem|101dde3a2ceb429a|68bbf2916e2fce06|8f3e0a8a1521304e|831770464||t19324.6335028485s|64588fd0623bf62f|41537|rds|local|vector|||8.559||
+mammal_tr_path|stem|be4e615f4efec491|e9c6965de071b375|4e3739ef91745af0|-151052576|/Users/frank/Documents/GitHub/collab/reproplasticity/analysis/data/raw_data/mammals.nex|t3620.33333333333s|d9e8f0d44d4c702b|27217374|file|local|vector|||0.002||
+pal|function|5f2b6f21d9fcce3e|||||||||||||||
+phylogeny_plot|function|be281c8d20f71f82|||||||||||||||
+read_lht|function|c917cabb484a1f56|||||||||||||||
+read_tree|function|2ba59d9d3c497820|||||||||||||||
+report_dependencies|stem|a201acf01893c596|0ba740aa5669e0f1|1a701e964f873667|-1466915281||t19324.6593275957s|4c877582db246f52|237|rds|local|vector|||0.804||
+tax_resolutions_path|stem|bef679ee2713baab|6ff0ea92b0a5bf9c|4e3739ef91745af0|-1227156501|/Users/frank/Documents/GitHub/collab/reproplasticity/analysis/data/raw_data/tnr_lht.csv|t19318.2988596997s|5fecdbe88f911da5|28088|file|local|vector|||0.421||

@@ -10,6 +10,7 @@ editor: visual
 #| label: initialize
 #| include: false
 library(here)
+library(purrr)
 library(targets)
 
 source(here("R", "plot.R"))
@@ -28,14 +29,22 @@ First we need a database of life history traits, which we get from [Myhrvold et 
 #| echo: false
 
 mammal_lht <- tar_read("mammal_lht")
-lht_plots <- tar_read("lht_plots")
+lht_cols <- c(
+  "female_maturity_d", "gestation_d", "weaning_d", "longevity_y", 
+  "litter_or_clutch_size_n", "inter_birth_interval_y"
+)
+lht_names <- c(
+  "Female age at maturity (days)", "Gestation (days)", "Weaning (days)", 
+  "Longevity (years)", "Fecundity (n offspring)", "Inter-birth interval (y)"
+)
+lht_plots <- map2(lht_cols, lht_names, life_history_plot, dat = mammal_lht)
 
 cowplot::plot_grid(plotlist = lht_plots, nrow = 2)
 ```
 
 ## Phylogeny
 
-Now we account for phylogeny. Using a mammal tree from [Upham et al. (2019) *PLOS*](https://doi.org/10.1371/journal.pbio.3000494), downloaded from [VertLife](http://verlife.org/phylosubsets).
+Next we need a tree. Use one from [Upham et al. (2019) *PLOS*](https://doi.org/10.1371/journal.pbio.3000494), downloaded from [VertLife](http://verlife.org/phylosubsets). Cetaceans highlighted in yellow.
 
 TODO: "We constructed a single species-level phylogenetic consensus tree for birds using 1000 phylogenetic trees from the BirdTree project with the phytools package in R (ver. 3.5.2)." (Soriano-Redondo et al. 2020). Can we do something similar with the vertlife trees?
 
@@ -43,4 +52,6 @@ TODO: "We constructed a single species-level phylogenetic consensus tree for bir
 #| label: phylogeny
 #| echo: false
 
+mammal_tr <- tar_read("mammal_tr")
+phylogeny_plot(mammal_tr)
 ```

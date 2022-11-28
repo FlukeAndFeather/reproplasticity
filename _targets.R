@@ -13,6 +13,7 @@ depends <- c(
   "cowplot",
   "dplyr",
   "ggplot2",
+  "ggtree",
   "here",
   "purrr",
   "readr",
@@ -27,11 +28,6 @@ tar_option_set(
 tar_source()
 
 # Define the pipeline:
-lht_cols <- c("female_maturity_d", "gestation_d", "weaning_d", "longevity_y",
-              "litter_or_clutch_size_n", "inter_birth_interval_y")
-lht_names <- c("Female age at maturity (days)", "Gestation (days)",
-               "Weaning (days)", "Longevity (years)", "Fecundity (n offspring)",
-               "Inter-birth interval (y)")
 list(
   # Life history trait data
   tar_target(
@@ -43,10 +39,6 @@ list(
   tar_target(
     name = mammal_lht,
     command = read_lht(mammal_lht_path)
-  ),
-  tar_target(
-    name = lht_plots,
-    command = map2(lht_cols, lht_names, life_history_plot, dat = mammal_lht)
   ),
   # Phylogenetic data
   tar_target(
@@ -64,7 +56,15 @@ list(
     command = read_tree(mammal_tr_path, tax_resolutions_path, mammal_lht)
   ),
   # Generate LHT report
-  tar_quarto(
+  tar_target(
+    # Force dependencies for functions used in report
+    name = report_dependencies,
+    command = {
+      life_history_plot
+      phylogeny_plot
+    }
+  ),
+  tar_render(
     name = lht_report,
     path = here("analysis", "reports", "03_life_history.qmd")
   )
