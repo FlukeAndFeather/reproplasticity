@@ -18,7 +18,7 @@ source(here("R", "plot.R"))
 
 # Scaling of life history traits
 
-Quantify great whales' pace-of-life relative to mammals. Account for effects of body size and phylogeny. See [Jeschke and Kokko (2009)](https://doi.org/10.1007/s10682-008-9276-y) *Evolutionary Ecology*, [Revell (2014)](https://doi.org/10.1111/j.2041-210X.2011.00169.x) *Methods in Ecology and Evolution*, [Soriano-Redondo et al. (2020)](https://doi.org/10.1038/s41467-020-19256-0) *Nature Communications*.
+Quantify great whales' pace-of-life relative to mammals. Account for effects of body size and phylogeny. See [Jeschke and Kokko (2009) *Evolutionary Ecology*](https://doi.org/10.1007/s10682-008-9276-y), [Revell (2014) *Methods in Ecology and Evolution*](https://doi.org/10.1111/j.2041-210X.2011.00169.x), [Soriano-Redondo et al. (2020) *Nature Communications*](https://doi.org/10.1038/s41467-020-19256-0).
 
 ## Life history traits
 
@@ -39,7 +39,7 @@ lht_names <- c(
 )
 lht_plots <- map2(lht_cols, lht_names, life_history_plot, dat = mammal_lht)
 
-cowplot::plot_grid(plotlist = lht_plots, nrow = 2)
+plot_grid(plotlist = lht_plots, nrow = 2)
 ```
 
 ## Phylogeny
@@ -54,4 +54,22 @@ TODO: "We constructed a single species-level phylogenetic consensus tree for bir
 
 mammal_tr <- tar_read("mammal_tr")
 phylogeny_plot(mammal_tr)
+```
+
+## Residuals
+
+Calculate life history trait residuals while accounting for body size and phylogeny. See [Jeschke and Kokko (2009) *Evolutionary Ecology*](https://doi.org/10.1007/s10682-008-9276-y). Though [Freckleton (2002) *Journal of Animal Ecology*](https://doi.org/10.1046/j.1365-2656.2002.00618.x) warns against using residuals as data in subsequent analyses. They recommend multiple regression with body size as a predictor variable instead, although it's not immediately apparent to me how that would dovetail with dimensionality reduction.
+
+## PCA
+
+After reducing dimensionality of life history traits (using phylogenetic PCA) we are left with two axes: a primary axis corresponding to pace-of-life (maturity, longevity, post-natal investment, and inter-birth interval) and a secondary axis describing fecundity (large litters with brief pre-natal investment or vice versa). I find it interesting that fecundity is largely orthogonal to pace-of-life in this space.
+
+```{r}
+#| label: pca
+#| echo: false
+
+lht_pca <- tar_read("lht_pca")
+
+biplot(lht_pca)
+pol_plot(lht_pca, mammal_lht)
 ```

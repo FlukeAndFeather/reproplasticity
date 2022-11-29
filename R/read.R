@@ -1,6 +1,14 @@
 # Read life history trait data
-read_lht <- function(path) {
-  read_csv(path, show_col_types = FALSE) %>%
+read_lht <- function(lht_path, resolution_path) {
+  # The trait database and phylogenetic tree have 344 taxonomic conflicts. I
+  # manually verified the results of rotl::tnrs_match_names() and saved the
+  # resolutions to CSV.
+  lht_tax_resolutions <- read_csv(resolution_path, show_col_types = FALSE) %>%
+    drop_na(corrected_name) %>%
+    select(search_string, corrected_name)
+
+  # Read trait database
+  read_csv(lht_path, show_col_types = FALSE) %>%
     mutate(
       across(everything(), ~ na_if(.x, -999)),
       inter_birth_interval_y = 1 / litters_or_clutches_per_y,
@@ -13,43 +21,33 @@ read_lht <- function(path) {
         TRUE ~ NA_character_
       )
     ) %>%
-    filter(class == "Mammalia")
+    # Subset mammals
+    filter(class == "Mammalia") %>%
+    # Resolve taxonomic conflicts
+    mutate(search_string = trimws(tolower(paste(genus, species)))) %>%
+    left_join(lht_tax_resolutions, by = "search_string") %>%
+    mutate(tree_name = coalesce(corrected_name,
+                                paste(genus, species, sep = "_"))) %>%
+    select(tree_name, order, family, adult_body_mass_kg, female_maturity_d,
+           gestation_d, weaning_d, longevity_y, litter_or_clutch_size_n,
+           inter_birth_interval_y) %>%
+    # As a result of taxonomy resolution, some species were lumped. Aggregate
+    # their life history traits by the median. Drop species with incomplete LHT
+    # records.
+    drop_na() %>%
+    group_by(tree_name, order, family) %>%
+    summarize(across(everything(), median, na.rm = TRUE),
+              .groups = "drop")
 }
 
 # Read phylogenetic data
-read_tree <- function(tree_path, resolution_path, lht) {
+read_tree <- function(tree_path, lht) {
   # There are 100 trees in the nexus file because they're generated probabilistically.
   mammal_trs <- read.nexus(tree_path)
   # We'll try the analysis on the first one
   mammal_tr <- mammal_trs[[1]]
 
-  # 344 species are in the life history trait database but not the phylogeny. I
-  # manually verified the results of rotl::tnrs_match_names() to resolve
-  # taxonomic disagreements. Results of manual audit saved to CSV file.
-
-  # As a result of taxonomy resolution, some species were lumped. Aggregate
-  # their life history traits by the median. Drop species with incomplete LHT
-  # records.
-  lht_tax_resolutions <- read_csv(resolution_path, show_col_types = FALSE) %>%
-    drop_na(corrected_name) %>%
-    select(search_string, corrected_name)
-  mammal_lht_resolved <- lht %>%
-    mutate(search_string = trimws(tolower(paste(genus, species)))) %>%
-    left_join(lht_tax_resolutions, by = "search_string") %>%
-    mutate(tree_name = coalesce(corrected_name, paste(genus, species, sep = "_")),
-           in_tree = tree_name %in% mammal_tr$tip.label) %>%
-    filter(in_tree) %>%
-    select(tree_name, order, family, adult_body_mass_kg, female_maturity_d,
-           gestation_d, weaning_d, longevity_y, litter_or_clutch_size_n,
-           inter_birth_interval_y) %>%
-    drop_na() %>%
-    group_by(tree_name, order, family) %>%
-    summarize(across(everything(), median, na.rm = TRUE),
-              .groups = "drop")
-  # Leaves 1322 species
-
   # Subset tree to retained species
-  mammal_tr_subset <- keep.tip(mammal_tr, mammal_lht_resolved$tree_name)
-
-  mammal_tr_subset
+  keep.tip(mammal_tr,
+           lht$tree_name[lht$tree_name %in% mammal_tr$tip.label])
 }
