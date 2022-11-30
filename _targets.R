@@ -18,6 +18,7 @@ depends <- c(
   "ggrepel",
   "ggtree",
   "here",
+  "lubridate",
   "nlme",
   "phytools",
   "purrr",
@@ -35,16 +36,37 @@ tar_source()
 
 # Define the pipeline:
 list(
+  # Density Dependence in the Great Whales ----------------------------------
+  # IWC data
+  tar_target(
+    name = iwc_schema_path,
+    command = here("data", "iwc_schema.csv"),
+    format = "file"
+  ),
+  tar_target(
+    name = iwc_paths,
+    command = c(
+      here("data", "SHL.csv"),
+      here("data", "SHP1.csv"),
+      here("data", "SU.csv")
+    ),
+    format = "file"
+  ),
+  tar_target(
+    name = iwc_data,
+    command = read_iwc(iwc_paths, iwc_schema_path)
+  ),
+
+  # Life History Analysis ---------------------------------------------------
   # Life history trait data
   tar_target(
     name = mammal_lht_path,
-    command = here("analysis", "data", "raw_data",
-                   "Amniote_Database_Aug_2015.csv"),
+    command = here("data", "Amniote_Database_Aug_2015.csv"),
     format = "file"
   ),
   tar_target(
     name = tax_resolutions_path,
-    command = here("analysis", "data", "raw_data", "tnr_lht.csv"),
+    command = here("data", "tnr_lht.csv"),
     format = "file"
   ),
   tar_target(
@@ -54,7 +76,7 @@ list(
   # Phylogenetic data
   tar_target(
     name = mammal_tr_path,
-    command = here("analysis", "data", "raw_data", "mammals.nex"),
+    command = here("data", "mammals.nex"),
     format = "file"
   ),
   tar_target(
@@ -89,6 +111,6 @@ list(
   ),
   tar_render(
     name = lht_report,
-    path = here("analysis", "reports", "03_life_history.qmd")
+    path = here("reports", "03_life_history.qmd")
   )
 )
