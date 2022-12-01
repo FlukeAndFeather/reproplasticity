@@ -1,5 +1,5 @@
 ---
-title: "Great Whale Density Dependent Reproduction"
+title: "Great Whale Pregnancy Rates and Population Sizes"
 format:
   html:
     embed-resources: true
@@ -9,7 +9,6 @@ editor: visual
 ```{r}
 #| label: initialize
 #| include: false
-library(here)
 library(targets)
 
 source(here("R", "plot.R"))

@@ -3,15 +3,16 @@ name|type|data|command|depend|seed|path|time|size|bytes|format|repository|iterat
 biplot|function|c9ea57632950206d|||||||||||||||
 combine_iwc|function|f35108bdf5348009|||||||||||||||
 convert_length_m|function|f8d5ca79d040e168|||||||||||||||
-density_report|stem|a29c281bcb757e69|5b9a0ccb34d282e9|f250ca2da1a64dff|-1538471783|reports/01_whale_density.html*reports/01_whale_density.qmd|t19327.1801602442s|7df5614f6212793e|1416540|file|local|vector|||3.875||
+density_report|stem|f49b9c36ab3fc253|d4381a0e84e96acd|68be2204b75953ec|-1538471783|reports/02_density_model.html*reports/02_density_model.qmd|t19327.8141279309s|7bb0d67a7234f16d|893502|file|local|vector|||1.666||
 depends|object|7cad814e4a368299|||||||||||||||
 fit_pgls|function|5fff30c51cbb8984|||||||||||||||
+fit_preg|function|9fcab126e1289127|||||||||||||||
 iwc_data|stem|f14e8c873eb72de6|80521d9e30c89569|393da5ada6a01773|2097530105||t19327.1801143288s|fdb2f2f5e8013742|2601889|rds|local|vector|||14.2||
 iwc_paths|stem|d3db82288b7836a9|bd89a05d28182200|1536b6ccf6b02716|-1057502677|/Users/frank/Documents/GitHub/collab/reproplasticity/data/SHL.csv*/Users/frank/Documents/GitHub/collab/reproplasticity/data/SHP1.csv*/Users/frank/Documents/GitHub/collab/reproplasticity/data/SU.csv|t19116.7472002337s|3b08f6df982c400a|106783921|file|local|vector|||0.001||
 iwc_schema_path|stem|f6dcd31e442022f7|a243b0d4aa3aedd2|4e3739ef91745af0|1185113333|/Users/frank/Documents/GitHub/collab/reproplasticity/data/iwc_schema.csv|t19326.902637784s|44d8296aaebe8c60|317|file|local|vector|||2.463||
 lht_pca|stem|e026671e9becf660|276049d470ae2098|601b8ee3e4296654|-1003242790||t19325.4592547569s|839251e96f2a92e5|68792|rds|local|vector|||20312.095||
 lht_phyl_pca|function|ebbd7c5742f9f798|||||||||||||||
-lht_report|stem|df0579073d1acb0f|3ab73da70f397624|71f0a20c0cd7f157|-89480673|reports/03_life_history.html*reports/03_life_history.qmd|t19326.9088307224s|1f78e96ad2e45004|1861312|file|local|vector|||9.156||
+lht_report|stem|8b2e2fff7dd60d2f|3ab73da70f397624|71f0a20c0cd7f157|-89480673|reports/03_life_history.html*reports/03_life_history.qmd|t19327.8132541s|a79601b9e620fc9c|1861292|file|local|vector|||6.13||
 lht_resid|stem|a48ada3edeb5c33e|b927af3ee21c53b0|6baaf58011b3f4ea|1841071152||t19324.75661943s|d9f46334407e0441|94064|rds|local|vector|||62.489||
 lht_residuals|function|7289189342d5ef08|||||||||||||||
 life_history_plot|function|e92a47b1a5332955|||||||||||||||
@@ -25,8 +26,12 @@ pal2|function|da544d9961edc3b4|||||||||||||||
 phylogeny_plot|function|be281c8d20f71f82|||||||||||||||
 pol_plot|function|6d9b388136458f40|||||||||||||||
 pop_path|stem|af7e0c58aeb77cc6|eeb788cf238ec459|4e3739ef91745af0|981483295|/Users/frank/Documents/GitHub/collab/reproplasticity/data/Whale_pops_time_Christensen 2006.xlsx|t19279.7014635563s|e7bd75fd1d59e54f|137207|file|local|vector|||2.464||
+pop_preg_report|stem|ddb1ec895eefbe50|75c1d2f5feca482f|f250ca2da1a64dff|-1091318573|reports/01_whale_pop_preg.html*reports/01_whale_pop_preg.qmd|t19327.8131811524s|6040aff569aabff4|1434370|file|local|vector|||5.641||
+predict_preg|function|9869c0326799229a|||||||||||||||
 preg_data|stem|d7f246b13a18295a|f9e9c153b87db27e|91278d5338e9fdc9|2063579852||t19327.1801157346s|9b374d4442ab116e|2426|rds|local|vector|||0.091||
+preg_model|stem|f9b87d512c6f05fe|17293976a8355f9e|46cf0db344e8224a|-1683153067||t19327.8131823469s|350081de981cb041|19197|rds|local|vector|||0.02||
 preg_pop_data|stem|254b287845b0fb72|0d01b58bf8a27c6e|5142b846a6811287|571140084||t19327.1801160959s|73053155c4d34110|4385|rds|local|vector|||0.005||
+preg_predictions|stem|caeed18c00331338|c21f23527b413c47|66d054c01cacc3ed|-1965159170||t19327.8131838332s|0b1636d21ba9dfc5|7782|rds|local|vector|||0.103||
 preg_rate|function|ebadaf2d89527662|||||||||||||||
 preg_rate_data|stem|6bdccc216255408d|6833d859bf3c78e7|b7c33c50ee7b1908|225551135||t19326.9660252877s|9fa809c3d9cf56d9|2530|rds|local|vector|||0.288||
 read_iwc|function|fae28ab488dac310|||||||||||||||

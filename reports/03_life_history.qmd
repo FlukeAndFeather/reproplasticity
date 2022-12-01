@@ -1,5 +1,5 @@
 ---
-title: "Life History Report"
+title: "Pace of Life Continuum"
 format:
   html:
     embed-resources: true
@@ -9,8 +9,6 @@ editor: visual
 ```{r}
 #| label: initialize
 #| include: false
-library(here)
-library(purrr)
 library(targets)
 
 source(here("R", "plot.R"))

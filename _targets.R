@@ -94,10 +94,23 @@ list(
                          preg_data,
                          by = c("species", "catch_year"))
   ),
-  # Generate density dependence report
+  # Logistic model
+  tar_target(
+    name = preg_model,
+    command = fit_preg(preg_pop_data)
+  ),
+  tar_target(
+    name = preg_predictions,
+    command = predict_preg(preg_pop_data, preg_model)
+  ),
+  # Generate density dependence reports
+  tar_render(
+    name = pop_preg_report,
+    path = here("reports", "01_whale_pop_preg.qmd")
+  ),
   tar_render(
     name = density_report,
-    path = here("reports", "01_whale_density.qmd")
+    path = here("reports", "02_density_model.qmd")
   ),
 
   # Life History Analysis ---------------------------------------------------

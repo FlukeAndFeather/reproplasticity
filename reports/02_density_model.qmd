@@ -1,0 +1,48 @@
+---
+title: "Great Whale Density Dependent Reproduction"
+format:
+  html:
+    embed-resources: true
+editor: visual
+---
+
+```{r}
+#| label: initialize
+#| include: false
+library(targets)
+
+source(here("R", "plot.R"))
+```
+
+# Density dependence
+
+Fit a logistic model to pregnancy rates w.r.t. population size and test two hypotheses. H1: great whales' pregnancy rates are negatively related to population size. H2: the magnitude of the negative relationship is stronger for fast-paced (i.e., baleen whales) than slow-paced (i.e., sperm whale) species. Limit model to years where population size \>=20% of maximum population size.
+
+```{r}
+#| label: logistic_model
+#| echo: false
+
+preg_pop_data <- tar_read("preg_pop_data")
+preg_predictions <- tar_read("preg_predictions")
+
+ggplot(preg_predictions, aes(pop_norm, preg_rate, color = species)) +
+  geom_point(aes(size = f_catches), 
+             filter(preg_pop_data, preg_rate < 1),
+             shape = 21) +
+  geom_ribbon(aes(fill = species, 
+                  ymin = preg_rate_lwr, 
+                  ymax = preg_rate_upr),
+              alpha = 0.25,
+              color = NA) +
+  geom_line() +
+  scale_color_manual(values = pal()) +
+  scale_fill_manual(values = pal()) +
+  labs(x = "Population size (normalized)",
+       y = "Probability of pregnancy",
+       color = "",
+       fill = "",
+       size = "Females caught (annual)") +
+  theme_classic() +
+  theme(legend.position = "bottom",
+        legend.box = "vertical")
+```
