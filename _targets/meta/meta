@@ -12,7 +12,7 @@ iwc_paths|stem|d3db82288b7836a9|bd89a05d28182200|1536b6ccf6b02716|-1057502677|/U
 iwc_schema_path|stem|f6dcd31e442022f7|a243b0d4aa3aedd2|4e3739ef91745af0|1185113333|/Users/frank/Documents/GitHub/collab/reproplasticity/data/iwc_schema.csv|t19326.902637784s|44d8296aaebe8c60|317|file|local|vector|||2.463||
 lht_pca|stem|e026671e9becf660|276049d470ae2098|601b8ee3e4296654|-1003242790||t19325.4592547569s|839251e96f2a92e5|68792|rds|local|vector|||20312.095||
 lht_phyl_pca|function|ebbd7c5742f9f798|||||||||||||||
-lht_report|stem|8b2e2fff7dd60d2f|3ab73da70f397624|71f0a20c0cd7f157|-89480673|reports/03_life_history.html*reports/03_life_history.qmd|t19327.8132541s|a79601b9e620fc9c|1861292|file|local|vector|||6.13||
+lht_report|stem|1a2def581657f52d|9ea8f5ea6b8bb966|fa6471e63a3ba865|-89480673|reports/03_life_history.html*reports/03_life_history.qmd|t19327.9451188751s|b8745b896e17bbc7|1868923|file|local|vector|||6.373||
 lht_resid|stem|a48ada3edeb5c33e|b927af3ee21c53b0|6baaf58011b3f4ea|1841071152||t19324.75661943s|d9f46334407e0441|94064|rds|local|vector|||62.489||
 lht_residuals|function|7289189342d5ef08|||||||||||||||
 life_history_plot|function|e92a47b1a5332955|||||||||||||||
@@ -25,6 +25,7 @@ pairwise_preg|function|873478cbd6ad7803|||||||||||||||
 pal|function|5f2b6f21d9fcce3e|||||||||||||||
 pal2|function|da544d9961edc3b4|||||||||||||||
 phylogeny_plot|function|be281c8d20f71f82|||||||||||||||
+pol_dat|stem|5ada62ccde67103a|8c3548600017160c|6488b4e91ab9986c|621059333||t19327.9341527071s|a6244d4509d60c67|59941|rds|local|vector|||0.024||
 pol_plot|function|6d9b388136458f40|||||||||||||||
 pop_path|stem|af7e0c58aeb77cc6|eeb788cf238ec459|4e3739ef91745af0|981483295|/Users/frank/Documents/GitHub/collab/reproplasticity/data/Whale_pops_time_Christensen 2006.xlsx|t19279.7014635563s|e7bd75fd1d59e54f|137207|file|local|vector|||2.464||
 pop_preg_report|stem|ddb1ec895eefbe50|75c1d2f5feca482f|f250ca2da1a64dff|-1091318573|reports/01_whale_pop_preg.html*reports/01_whale_pop_preg.qmd|t19327.8131811524s|6040aff569aabff4|1434370|file|local|vector|||5.641||

@@ -60,7 +60,9 @@ Calculate life history trait residuals while accounting for body size and phylog
 
 ## PCA
 
-After reducing dimensionality of life history traits (using phylogenetic PCA) we are left with two axes: a primary axis corresponding to pace-of-life (maturity, longevity, post-natal investment, and inter-birth interval) and a secondary axis describing fecundity (large litters with brief pre-natal investment or vice versa). I find it interesting that fecundity is largely orthogonal to pace-of-life in this space.
+After reducing dimensionality of life history traits (using phylogenetic PCA) we are left with two axes: a primary axis corresponding to pace-of-life (maturity, longevity, post-natal investment, and inter-birth interval) and a secondary axis describing fecundity (large litters with brief pre-natal investment or vice versa). Greater PC1 values indicate fast pace-of-life.
+
+I find it interesting that fecundity is largely orthogonal to pace-of-life in this space. Traditional life history theory associates fast-paced species with large litters and short gestations (bottom-right quadrant, e.g. *Mesocricetus brandti*, a hamster) and slow-paced species with small litters and long gestations (upper-left quadrant, e.g. humans). However, after accounting for body size and phylogeny constraints, we are also likely to see fast-paced species with have small litters (upper-right quadrant, e.g. blue whale) and slow-paced species with large litters (lower-left quadrant, e.g. *Sminthopsis leucopus*, a mouse-like marsupial).
 
 ```{r}
 #| label: pca
@@ -69,5 +71,28 @@ After reducing dimensionality of life history traits (using phylogenetic PCA) we
 lht_pca <- tar_read("lht_pca")
 
 biplot(lht_pca)
-pol_plot(lht_pca, mammal_lht)
+```
+
+The fastest-paced orders are Lagomorpha (rabbits and hares) and Artiodactyla (even-toed ungulates). The slowest-paced orders are Chiroptera (bats), Dasyuromorphia (carnivorous marsupials), Soricomorpha (shrews and moles), and Primates (monkeys and apes). The ordination largely aligns with traditional life history theory, except for shrews. I suspect that is explained by their very small body size.
+
+```{r}
+#| label: pol
+#| echo: false
+
+pol_dat <- tar_read("pol_dat")
+
+pol_great_whales <- pol_dat %>%
+    filter(tree_name %in% c("Balaenoptera_musculus",
+                            "Balaenoptera_physalus",
+                            "Physeter_macrocephalus"))
+
+pol_dat %>%
+  ggplot(aes(pc1, order)) +
+  geom_boxplot() +
+  geom_point(aes(color = tree_name), pol_great_whales, size = 3) +
+  scale_color_manual(values = pal2()) +
+  labs(x = "PC1 (pace-of-life)") +
+  theme_classic() +
+  theme(axis.title.y = element_blank(),
+        legend.position = "none")
 ```

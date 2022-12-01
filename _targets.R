@@ -159,6 +159,15 @@ list(
     name = lht_pca,
     command = lht_phyl_pca(lht_resid, mammal_tr)
   ),
+  tar_target(
+    name = pol_dat,
+    command =  lht_pca$S %>%
+      as.data.frame() %>%
+      rownames_to_column("tree_name") %>%
+      select(tree_name, pc1 = PC1, pc2 = PC2) %>%
+      left_join(mammal_lht, by = "tree_name") %>%
+      mutate(order = fct_reorder(order, pc1))
+  ),
   # Generate LHT report
   tar_render(
     name = lht_report,

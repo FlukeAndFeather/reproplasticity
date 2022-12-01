@@ -106,28 +106,3 @@ biplot <- function(pca) {
 
   ggMarginal(p, type = "density")
 }
-
-# Distribution of PC1 (pace-of-life axis) by order
-pol_plot <- function(pca, lht) {
-  pol_dat <- pca$S %>%
-    as.data.frame() %>%
-    rownames_to_column("tree_name") %>%
-    select(tree_name, pc1 = PC1, pc2 = PC2) %>%
-    left_join(lht, by = "tree_name") %>%
-    mutate(order = fct_reorder(order, pc1))
-
-  pol_great_whales <- pol_dat %>%
-    filter(tree_name %in% c("Balaenoptera_musculus",
-                            "Balaenoptera_physalus",
-                            "Physeter_macrocephalus"))
-
-  pol_dat %>%
-    ggplot(aes(pc1, order)) +
-    geom_boxplot() +
-    geom_point(aes(color = tree_name), pol_great_whales, size = 3) +
-    scale_color_manual(values = pal2()) +
-    theme_classic() +
-    theme(axis.title.y = element_blank(),
-          legend.position = "none")
-}
-
