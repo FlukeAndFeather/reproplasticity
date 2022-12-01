@@ -130,3 +130,4 @@ pol_plot <- function(pca, lht) {
     theme(axis.title.y = element_blank(),
           legend.position = "none")
 }
+

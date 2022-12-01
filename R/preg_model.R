@@ -1,3 +1,4 @@
+# Fit logistic model
 fit_preg <- function(preg_pop_data) {
   glm(preg_rate ~ pop_norm * species,
       data = filter(preg_pop_data, pop_norm >= 0.2),
@@ -5,6 +6,7 @@ fit_preg <- function(preg_pop_data) {
       weights = f_catches)
 }
 
+# Generate predictions from logisitic model
 predict_preg <- function(preg_pop_data, preg_model) {
   # Create prediction grid
   preg_grid <- expand_grid(
@@ -12,7 +14,7 @@ predict_preg <- function(preg_pop_data, preg_model) {
     pop_norm = seq(0.2, 1, length.out = 100)
   )
 
-  # Generate predictions (with CI)
+  # Predictions with CI
   preg_pred <- predict(preg_model,
                        newdata = preg_grid,
                        type = "link",

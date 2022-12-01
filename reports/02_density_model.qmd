@@ -46,3 +46,66 @@ ggplot(preg_predictions, aes(pop_norm, preg_rate, color = species)) +
   theme(legend.position = "bottom",
         legend.box = "vertical")
 ```
+
+## H1: Do great whales exhibit density dependent reproduction?
+
+All three species' pregnancy rates were negatively correlated with population size.
+
+```{r}
+#| label: h1
+#| echo: false
+
+preg_model <- tar_read("preg_model")
+preg_coef <- coef(preg_model)[c(2, 5, 6)]
+# Interaction terms are relative to the reference level
+preg_coef <- preg_coef + c(0, preg_coef[1], preg_coef[1])
+preg_pval <- coef(summary(preg_model))[, "Pr(>|z|)"][c(2, 5, 6)]
+
+format_p <- function(p, digits) {
+  template <- sprintf("<%%0.%df", as.integer(digits))
+  ifelse(p < 10^-digits, 
+         sprintf(template, 10^-digits),
+         round(p, digits))
+}
+
+tibble(Species = c("Blue Whale", "Fin Whale", "Sperm Whale"),
+       Coefficient = round(preg_coef, 3),
+       `P-value` = format_p(preg_pval, 3)) %>% 
+  kable() %>% 
+  kable_styling(full_width = FALSE)
+
+```
+
+## H2: Is density dependent reproduction greater in faster-paced species?
+
+Density dependence was significantly greater in fin whales than sperm whales. Also greater in blue whales than sperm whales but not significantly so, likely due to limited sperm whale sample size and large confidence intervals.
+
+```{r}
+#| label: h2
+#| echo: false
+
+preg_em <- emtrends(preg_model, "species", "pop_norm")
+format_p <- function(p, digits) {
+  template1 <- sprintf("p < %%0.%df", as.integer(digits))
+  template2 <- sprintf("p = %%0.%df", as.integer(digits))
+  ifelse(p < 10^-digits, 
+         sprintf(template1, 10^-digits),
+         sprintf(template2, round(p, digits)))
+}
+preg_pairs <- as_tibble(pairs(preg_em)) %>% 
+  mutate(comparisons = str_split(contrast, " - "),
+         annotations = format_p(p.value, 3))
+
+plot(preg_em,
+     xlab = "Coef") +
+  geom_signif(
+    comparisons = preg_pairs$comparisons,
+    annotations = preg_pairs$annotations,
+    step_increase = 0.1
+  ) +
+  expand_limits(x = 0) +
+  labs(x = "Coefficient") +
+  theme_classic() +
+  theme(axis.title.y = element_blank())
+
+```
