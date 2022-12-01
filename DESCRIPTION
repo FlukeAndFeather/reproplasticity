@@ -26,6 +26,8 @@ Imports:
     phytools,
     purrr,
     readr,
+    readxl,
+    scales,
     tarchetypes,
     targets,
     tidyr

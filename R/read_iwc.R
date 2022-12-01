@@ -75,7 +75,7 @@ read_iwc <- function(iwc_data_paths, iwc_schema_path) {
                                         "Resting",
                                         "Pregnancy lost",
                                         "Unknown")),
-              is_pregnant = Fem %in% c(1, 2, 4, 5, 6, 7),
+              is_pregnant = Fem %in% c(1, 2, 4),
               maturity = factor(Mat,
                                 levels = 0:4,
                                 labels = c("Unknown",
@@ -84,5 +84,7 @@ read_iwc <- function(iwc_data_paths, iwc_schema_path) {
                                            "Mother",
                                            "Calf"))) %>%
     drop_na(date, species) %>%
-    filter(species %in% c("Blue", "Fin", "Sperm"))
+    filter(species %in% c("Blue", "Fin", "Sperm"),
+           latitude < 0) %>%
+    mutate(species = paste(species, "Whale"))
 }

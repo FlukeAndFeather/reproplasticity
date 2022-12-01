@@ -1,0 +1,123 @@
+---
+title: "Great Whale Density Dependent Reproduction"
+format:
+  html:
+    embed-resources: true
+editor: visual
+---
+
+```{r}
+#| label: initialize
+#| include: false
+library(here)
+library(targets)
+
+source(here("R", "plot.R"))
+```
+
+# Industrial whaling in the Southern Ocean
+
+Industrial whaling harvested millions of whales, reducing some species' populations to \<1% of pre-whaling sizes.
+
+## Catch trends
+
+Data from the IWC. How do we properly attribute?
+
+Catches over time. Color palette as in other reports (blue whale, fin whale, sperm whale = blue, green, orange). Notice shift to smaller species over time, as well as substantial decrease in effort during WWII.
+
+```{r}
+#| label: iwc_catches
+#| echo: false
+
+iwc_data <- tar_read("iwc_data")
+ggplot(iwc_data, aes(catch_year, fill = species)) +
+  geom_area(stat = "count") +
+  scale_fill_manual(values = pal()) +
+  labs(y = "Annual catches") +
+  theme_classic() +
+  theme(axis.title.x = element_blank(),
+        legend.position = "none")
+  
+```
+
+## Pregnancy trends
+
+Pregnancy rates increased over time. Only years with \>0 females caught included.
+
+```{r}
+#| label: preg_rates
+#| echo: false
+
+preg_data <- tar_read("preg_data")
+
+ggplot(preg_data, 
+       aes(catch_year, preg_rate, size = f_catches, color = species)) +
+  geom_point(alpha = 0.5) +
+  geom_point(shape = 21) +
+  scale_y_continuous("Pregnancy rate", labels = percent) +
+  scale_color_manual(values = pal(), guide = "none") +
+  scale_size_continuous(breaks = c(1, 5e3, 10e3)) +
+  labs(size = "Females caught") +
+  expand_limits(y = 0, size = 1) +
+  theme_classic() +
+  theme(axis.title.x = element_blank(),
+        legend.justification = c(1, 1),
+        legend.position = c(0.9, 0.9))
+```
+
+## Population trends
+
+Data from [Christensen (2006) *UBC* *Fisheries Centre Research Reports*](http://doi.org/10.14288/1.0074757)*;* reconstructed population sizes of whale populations. Note: blue and fin populations from Southern Ocean but sperm populations global.
+
+```{r}
+#| label: pop_trends
+#| echo: false
+
+whale_pops <- tar_read("whale_pops")
+ggplot(whale_pops, aes(catch_year, pop_size / 1000, color = species)) +
+  geom_line() +
+  scale_color_manual(values = pal()) +
+  scale_y_continuous("Population (1000s)") +
+  theme_classic() +
+  theme(axis.title.x = element_blank(),
+        legend.position = "none")
+```
+
+Population trends normalized as fraction of 20th century maximum.
+
+```{r}
+#| label: pop_trends_norm
+#| echo: false
+
+whale_pops_20th <- tar_read("whale_pops_20th")
+ggplot(whale_pops_20th, aes(catch_year, pop_norm, color = species)) +
+  geom_line() +
+  scale_color_manual(values = pal()) +
+  scale_y_continuous("Population (normalized)") +
+  theme_classic() +
+  theme(axis.title.x = element_blank(),
+        legend.position = "none")
+```
+
+# Density dependent reproduction
+
+Pregnancy rates were greater at low population sizes
+
+```{r}
+#| label: preg_pop
+#| echo: false
+
+preg_pop_data <- tar_read("preg_pop_data")
+# In 1973 2 female blues were caught and both were pregnant, which makes the
+# figure harder to interpret
+ggplot(filter(preg_pop_data, preg_rate < 1),
+       aes(pop_norm, preg_rate, size = f_catches, color = species)) +
+  geom_point(alpha = 0.5) +
+  geom_point(shape = 21) +
+  scale_y_continuous("Pregnancy rate", 
+                     labels = percent) +
+  scale_color_manual(values = pal()) +
+  labs(x = "Population (normalized)") +
+  theme_classic() +
+  theme(legend.position = "none")
+```

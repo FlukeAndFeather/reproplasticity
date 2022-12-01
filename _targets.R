@@ -23,6 +23,8 @@ depends <- c(
   "phytools",
   "purrr",
   "readr",
+  "readxl",
+  "scales",
   "tibble",
   "tidyr"
 )
@@ -37,7 +39,7 @@ tar_source()
 # Define the pipeline:
 list(
   # Density Dependence in the Great Whales ----------------------------------
-  # IWC data
+  # IWC data (catches and pregnancy rates)
   tar_target(
     name = iwc_schema_path,
     command = here("data", "iwc_schema.csv"),
@@ -55,6 +57,47 @@ list(
   tar_target(
     name = iwc_data,
     command = read_iwc(iwc_paths, iwc_schema_path)
+  ),
+  tar_target(
+    name = preg_data,
+    command = iwc_data %>%
+      group_by(catch_year, species) %>%
+      summarize(catches = n(),
+                f_catches = sum(sex == "Female"),
+                preg_rate = preg_rate(is_pregnant, sex),
+                .groups = "drop") %>%
+      drop_na() %>%
+      filter(f_catches > 0)
+  ),
+  # Population data
+  tar_target(
+    name = pop_path,
+    command = here("data", "Whale_pops_time_Christensen 2006.xlsx"),
+    format = "file"
+  ),
+  tar_target(
+    name = whale_pops,
+    command = read_pop(pop_path)
+  ),
+  tar_target(
+    name = whale_pops_20th,
+    command = whale_pops %>%
+      filter(catch_year >= 1900) %>%
+      group_by(species) %>%
+      mutate(pop_norm = pop_size / max(pop_size)) %>%
+      ungroup()
+  ),
+  # Population and pregnancy joined
+  tar_target(
+    name = preg_pop_data,
+    command = inner_join(whale_pops_20th,
+                         preg_data,
+                         by = c("species", "catch_year"))
+  ),
+  # Generate density dependence report
+  tar_render(
+    name = density_report,
+    path = here("reports", "01_whale_density.qmd")
   ),
 
   # Life History Analysis ---------------------------------------------------
@@ -99,16 +142,6 @@ list(
     command = lht_phyl_pca(lht_resid, mammal_tr)
   ),
   # Generate LHT report
-  tar_target(
-    # Force dependencies for functions used in report
-    name = report_dependencies,
-    command = {
-      life_history_plot
-      phylogeny_plot
-      biplot
-      pol_plot
-    }
-  ),
   tar_render(
     name = lht_report,
     path = here("reports", "03_life_history.qmd")
