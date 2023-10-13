@@ -10,8 +10,10 @@ editor: visual
 #| label: initialize
 #| include: false
 library(targets)
+library(tidyverse)
 
-source(here("R", "plot.R"))
+source(here::here("R", "plot.R"))
+tar_load_everything(store = here::here("_targets"))
 ```
 
 # Density dependence
@@ -19,11 +21,25 @@ source(here("R", "plot.R"))
 Fit a logistic model to pregnancy rates w.r.t. population size and test two hypotheses. H1: great whales' pregnancy rates are negatively related to population size. H2: the magnitude of the negative relationship is stronger for fast-paced (i.e., baleen whales) than slow-paced (i.e., sperm whale) species. Limit model to years where population size \>=20% of maximum population size.
 
 ```{r}
+#| label: sample_size
+#| echo: false
+
+# preg_pop_data <- tar_read("preg_pop_data", store = here::here())
+preg_pop_data %>% 
+  group_by(species) %>% 
+  filter(pop_norm >= 0.2) %>% 
+  summarize(`Years` = n(),
+            `Total catches` = sum(catches),
+            `Females caught` = sum(f_catches),
+            `Population decline` = max(pop_norm) - min(pop_norm)) %>% 
+  knitr::kable()
+```
+
+```{r}
 #| label: logistic_model
 #| echo: false
 
-preg_pop_data <- tar_read("preg_pop_data")
-preg_predictions <- tar_read("preg_predictions")
+# preg_predictions <- tar_read("preg_predictions")
 
 ggplot(preg_predictions, aes(pop_norm, preg_rate, color = species)) +
   geom_point(aes(size = f_catches), 
@@ -55,7 +71,7 @@ All three species' pregnancy rates were negatively correlated with population si
 #| label: h1
 #| echo: false
 
-preg_model <- tar_read("preg_model")
+# preg_model <- tar_read("preg_model")
 preg_coef <- coef(preg_model)[c(2, 5, 6)]
 # Interaction terms are relative to the reference level
 preg_coef <- preg_coef + c(0, preg_coef[1], preg_coef[1])
@@ -71,8 +87,8 @@ format_p <- function(p, digits) {
 tibble(Species = c("Blue Whale", "Fin Whale", "Sperm Whale"),
        Coefficient = round(preg_coef, 3),
        `P-value` = format_p(preg_pval, 3)) %>% 
-  kable() %>% 
-  kable_styling(full_width = FALSE)
+  knitr::kable() %>% 
+  kableExtra::kable_styling(full_width = FALSE)
 
 ```
 
@@ -84,7 +100,7 @@ Density dependence was significantly greater in fin whales than sperm whales. Al
 #| label: h2
 #| echo: false
 
-preg_em <- emtrends(preg_model, "species", "pop_norm")
+preg_em <- emmeans::emtrends(preg_model, "species", "pop_norm")
 format_p <- function(p, digits) {
   template1 <- sprintf("p < %%0.%df", as.integer(digits))
   template2 <- sprintf("p = %%0.%df", as.integer(digits))
@@ -98,7 +114,7 @@ preg_pairs <- as_tibble(pairs(preg_em)) %>%
 
 plot(preg_em,
      xlab = "Coef") +
-  geom_signif(
+  ggsignif::geom_signif(
     comparisons = preg_pairs$comparisons,
     annotations = preg_pairs$annotations,
     step_increase = 0.1
