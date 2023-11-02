@@ -10,7 +10,7 @@ read_lht <- function(lht_path, resolution_path) {
   # Read trait database
   read_csv(lht_path, show_col_types = FALSE) %>%
     mutate(
-      across(everything(), ~ na_if(.x, -999)),
+      across(where(is.numeric), ~ na_if(.x, -999)),
       inter_birth_interval_y = 1 / litters_or_clutches_per_y,
       adult_body_mass_kg = adult_body_mass_g,
       great_whale = case_when(

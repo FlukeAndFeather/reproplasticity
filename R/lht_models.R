@@ -1,28 +1,31 @@
 # Fit a PGLS model to a life history trait w.r.t. body size (log-log),
 # accounting for  phylogeny
-fit_pgls <- function(trait, lht, tr) {
-  f <- update(~ log(adult_body_mass_kg),
-              as.formula(sprintf("log(%s) ~ .", trait)))
-  cor <- corBrownian(phy = tr, form = ~ tree_name)
-  gls(f, lht, cor, method = "ML")
+fit_model <- function(trait, lht, tr, type = c("Gaussian", "Tweedie")) {
+
+  type <- match.arg(type)
+
+  type |> switch(
+    Gaussian = lm(update(~ log(adult_body_mass_kg), as.formula(sprintf("log(%s) ~ .", trait))), data = lht),
+    Tweedie = glmmTMB(as.formula(paste0(trait, "~ log(adult_body_mass_kg)")), data = lht, family = tweedie(link = "log"))
+  )
+
 }
 
 # Get life history trait residuals accounting for body size and phylogeny
 lht_residuals <- function(lht, tr) {
-  pgls_models <- map(
-    c("female_maturity_d", "gestation_d", "weaning_d", "longevity_y",
-      "litter_or_clutch_size_n", "inter_birth_interval_y"),
-    fit_pgls,
-    lht = lht,
-    tr = tr
-  )
-  lht %>%
-    mutate(female_maturity_d_resid = resid(pgls_models[[1]]),
-           gestation_d_resid = resid(pgls_models[[2]]),
-           weaning_d_resid = resid(pgls_models[[3]]),
-           longevity_y_resid = resid(pgls_models[[4]]),
-           litter_or_clutch_size_n_resid = resid(pgls_models[[5]]),
-           inter_birth_interval_y_resid = resid(pgls_models[[6]]))
+
+  traits <- c("female_maturity_d", "gestation_d", "weaning_d", "longevity_y",
+              "fecundity", "inter_birth_interval_y")
+
+  models <- traits |> map2(
+    c("Gaussian", "Gaussian", "Gaussian", "Gaussian", "Tweedie", "Gaussian"),
+    ~ fit_model(.x, lht = lht, tr = tr, type = .y)
+  ) |> setNames(paste0(traits, "_resid"))
+
+  model_resid <- bind_cols(lapply(models, resid, type = "pearson"))
+
+  bind_cols(lht, model_resid)
+
 }
 
 # Reduce life history trait dimensionality using phylogenetic PCA

@@ -31,7 +31,8 @@ depends <- c(
   "scales",
   "stringr",
   "tibble",
-  "tidyr"
+  "tidyr",
+  "glmmTMB"
 )
 tar_option_set(
   packages = depends,
@@ -147,7 +148,7 @@ list(
   # Subset trait data
   tar_target(
     name = mammal_lht,
-    command = filter(mammal_lht0, tree_name %in% mammal_tr$tip.label)
+    command = mutate(filter(mammal_lht0, tree_name %in% mammal_tr$tip.label), fecundity = pmax(0, litter_or_clutch_size_n - 1))
   ),
   # LHT residuals
   tar_target(
